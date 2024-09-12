@@ -1,0 +1,37 @@
+{
+  "name": "expense-manager-rollup",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "public/index.js",
+  "style": "public/styles.css",
+  "files": [
+    "public"
+  ],
+  "scripts": {
+    "start": "rollup -c -w",
+    "build": "rollup"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-react": "^7.24.7",
+    "core-js": "^3.38.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "^5.0.1",
+    "regenerator-runtime": "^0.14.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.7",
+    "postcss": "8.1",
+    "rollup": "^4.21.3",
+    "rollup-plugin-livereload": "^2.0.5",
+    "rollup-plugin-serve": "^1.1.1"
+  }
+}
