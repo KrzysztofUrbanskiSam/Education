@@ -62,3 +62,28 @@ i -> denominations
 Recurrence relation
 f(i, t) = min { f(i, to - di) + 1
                 f(i - 1, to)}
+
+# Image resizing
+
+We can find uninteresting seams (width 1px) and no one will notice change.
+
+We will implement seam curving on real images.
+a) preprocessing to get a image in a form we can process
+b) apply dynamic programming - find the least interesting seam
+c) post processing - take results of DP and use them (removing pixels)
+
+
+The energy at the certain pixel is numerical value how much surrounding is changing around the pixel.
+The higher value, the pixel surrounding changes more. Those define interesting regions
+
+
+Definition of pixel energy (simplified):
+rgb = red, green blue
+
+|dx|^2 = |drx|^2 + |dgx|^2 + |dbx|^2
+
+|dy|^2 = |dry|^2 + |dgy|^2 + |dby|^2
+
+e(x,y) = |dx|^2 + |dy|^2
+
+
