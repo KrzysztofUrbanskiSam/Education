@@ -65,6 +65,7 @@ f(i, t) = min { f(i, to - di) + 1
 
 # Image resizing
 
+## Calculating energy of an pixel
 We can find uninteresting seams (width 1px) and no one will notice change.
 
 We will implement seam curving on real images.
@@ -87,3 +88,40 @@ rgb = red, green blue
 e(x,y) = |dx|^2 + |dy|^2
 
 
+<<<<<<< HEAD
+=======
+## Finding vertical seam
+
+We should find seam for which total energy of pixels is minimum
+
+To solve this problem in an efficient way we should keep track of two things:
+ - where to go (going down)
+ - where to come from (going up)
+
+ Define function
+
+ M(x, y) = minimum total energy of any seam ending at pixel x, y
+ M(x, 0) = e(x, 0)
+ M(x, y) = e(x, y) + min( M(x - 1, y - 1) (up left)
+                          M(x, y - 1) (up)
+                          M(x + 1, y + 1) (up right) )
+
+## how to store arrows?
+Using back pointers to reconstruct seams
+a) As destination pixel (x, y)
+b) As just x form destination pixel
+c) As just -1, 0, 1 <- the best choice
+
+# Sorting in python
+
+```
+a = [11, 22, 1, 4, 5]
+sorted(range(7), key=lambda x:a[x])
+```
+
+```
+b = {"a": [1, 2, 3], "b": [1, 2], "c": {12, 32, 23}}
+bb = sorted(b, key=lambda x:sum(b[x]))
+bb = sorted(b, key=lambda x:len(b[x])
+```
+>>>>>>> c9763c6 (Dynamic programming - image resizing - not done)

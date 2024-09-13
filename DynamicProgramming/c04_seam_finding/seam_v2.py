@@ -14,10 +14,12 @@ seam will be visualized:
 
 import sys
 
+from dataclasses import dataclass
+from typing import List, Tuple
 from energy import compute_energy
 from utils import Color, read_image_into_array, write_array_into_image
 
-
+@dataclass
 class SeamEnergyWithBackPointer:
     """
     Represents the total energy of a seam along with a back pointer:
@@ -33,11 +35,11 @@ class SeamEnergyWithBackPointer:
     You will implement this class as part of the second version of the vertical
     seam finding algorithm.
     """
+    energy: int = 0
+    x_coordinate_in_previous_row: int = 0
 
-    raise NotImplementedError('SeamEnergyWithBackPointer is not implemented')
 
-
-def compute_vertical_seam_v2(energy_data):
+def compute_vertical_seam_v2(energy_data: List[List[int]]) -> Tuple[List[int], int]:
     """
     Find the lowest-energy vertical seam given the energy of each pixel in the
     input image. The image energy should have been computed before by the
@@ -58,11 +60,43 @@ def compute_vertical_seam_v2(energy_data):
          the top of the image.
       2. The total energy of that seam.
     """
+    high = len(energy_data)
+    width = len(energy_data[0])
+    energy_power_grid: List[List[SeamEnergyWithBackPointer]] = [[SeamEnergyWithBackPointer() for _ in row] for row in energy_data]
 
-    raise NotImplementedError('compute_vertical_seam_v2 is not implemented')
+    for idx_col in range(width):
+        energy_power_grid[0][idx_col] = SeamEnergyWithBackPointer(energy_data[0][idx_col])
+
+    for idx_row in range(high):
+        for idx_col in range(width):
+            x_min = idx_col - 1 if idx_col > 0 else idx_col
+            x_max = idx_col + 1 if idx_col < width - 1 else width - 1
+
+            min_parent_idx_col = min(range(x_min, x_max + 1), key=lambda x_candidate:energy_power_grid[idx_row - 1][x_candidate].energy)
+
+            energy_power_grid[idx_row][idx_col] = SeamEnergyWithBackPointer(energy_data[idx_row][idx_col] + energy_power_grid[idx_row - 1][min_parent_idx_col].energy)
+
+    lowest_column = 0
+    lowest_energy = energy_power_grid[high - 1][0].energy
+
+    for idx_col in range(1, width):
+        column_energy = energy_power_grid[high - 1][idx_col].energy
+        if column_energy < lowest_energy:
+            lowest_energy = column_energy
+            lowest_column = idx_col
+
+    out_raw: List[int] = []
+
+    prev_row_column: int = lowest_column
+    for idx_row in range(high, 0, -1):
+        out_raw.append(energy_power_grid[idx_row][prev_row_column].energy)
+        prev_row_column = energy_power_grid[idx_row][prev_row_column].x_coordinate_in_previous_row
 
 
-def visualize_seam_on_image(pixels, seam_xs):
+    return out_raw[::-1], lowest_column
+
+
+def visualize_seam_on_image(pixels: List[List[Color]], seam_xs: List[int]):
     """
     Draws a red line on the image along the given seam. This is done to
     visualize where the seam is.
@@ -70,17 +104,16 @@ def visualize_seam_on_image(pixels, seam_xs):
     This is NOT one of the functions you have to implement.
     """
 
-    h = len(pixels)
     w = len(pixels[0])
 
     new_pixels = [[p for p in row] for row in pixels]
 
-    for y, seam_x in enumerate(seam_xs):
+    for idx_row, seam_x in enumerate(seam_xs):
         min_x = max(seam_x - 2, 0)
         max_x = min(seam_x + 2, w - 1)
 
-        for x in range(min_x, max_x + 1):
-            new_pixels[y][x] = Color(255, 0, 0)
+        for idx_col in range(min_x, max_x + 1):
+            new_pixels[idx_row][idx_col] = Color(255, 0, 0)
 
     return new_pixels
 
