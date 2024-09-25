@@ -8,14 +8,14 @@ representing pixels:
 
     python3 energy.py surfer.jpg surfer-energy.png
 """
-
+from typing import List
 
 import sys
 
 from utils import Color, read_image_into_array, write_array_into_image
 
 
-def energy_at(pixels, x, y):
+def energy_at(pixels: List[List[Color]], x: int, y: int) -> int:
     """
     Compute the energy of the image at the given (x, y) position.
 
@@ -27,10 +27,28 @@ def energy_at(pixels, x, y):
     This is one of the functions you will need to implement. Expected return
     value: a single number representing the energy at that point.
     """
+    h = len(pixels)
+    w = len(pixels[0])
 
-    raise NotImplementedError('energy_at is not implemented')
+    x0 = x if x == 0 else x-1
+    x1 = x if x == w - 1 else x + 1
+    dxr = pixels[y][x0].r - pixels[y][x1].r
+    dxg = pixels[y][x0].g - pixels[y][x1].g
+    dxb = pixels[y][x0].b - pixels[y][x1].b
 
-def compute_energy(pixels):
+
+    y0 = y if y == 0 else y-1
+    y1 = y if y == h - 1 else y + 1
+    dyr = pixels[y0][x].r - pixels[y1][x].r
+    dyg = pixels[y0][x].g - pixels[y1][x].g
+    dyb = pixels[y0][x].b - pixels[y1][x].b
+
+    dx = dxr**2 + dxg**2 + dxb**2
+    dy = dyr**2 + dyg**2 + dyb**2
+
+    return dx + dy
+
+def compute_energy(pixels: List[List[Color]]) -> List[List[int]]:
     """
     Compute the energy of the image at every pixel. Should use the `energy_at`
     function to actually compute the energy at any single position.
@@ -42,11 +60,15 @@ def compute_energy(pixels):
     This is one of the functions you will need to implement. Expected return
     value: the 2D grid of energy values.
     """
+    output: List[List[int]] = [[0 for _ in range(len(row))] for row in pixels]
+    for idx_row in range(0, len(pixels)):
+        for idx_col in range(0, len(pixels[idx_row])):
+            output[idx_row][idx_col] = energy_at(pixels, idx_col, idx_row)
 
-    raise NotImplementedError('compute_energy is not implemented')
+    return output
 
 
-def energy_data_to_colors(energy_data):
+def energy_data_to_colors(energy_data: List[List[int]]):
     """
     Convert the energy values at each pixel into colors that can be used to
     visualize the energy of the image. The steps to do this conversion are:
@@ -58,7 +80,7 @@ def energy_data_to_colors(energy_data):
     This is NOT one of the functions you have to implement.
     """
 
-    colors = [[0 for _ in row] for row in energy_data]
+    colors: List[List[Color]] = [[0 for _ in row] for row in energy_data] # type: ignore
 
     max_energy = max(
         energy

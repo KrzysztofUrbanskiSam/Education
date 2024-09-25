@@ -10,6 +10,14 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Seam v1",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer.jpg", "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_processed.jpg"]
         }
     ]
 }

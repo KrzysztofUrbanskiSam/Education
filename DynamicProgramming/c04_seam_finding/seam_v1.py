@@ -12,12 +12,11 @@ be visualized:
 
 
 import sys
-
+from typing import List, Tuple
 from energy import compute_energy
 from utils import Color, read_image_into_array, write_array_into_image
 
-
-def compute_vertical_seam_v1(energy_data):
+def compute_vertical_seam_v1(energy_data: List[List[int]]) -> Tuple[int, int]:
     """
     Find the lowest-energy vertical seam given the energy of each pixel in the
     input image. The image energy should have been computed before by the
@@ -33,11 +32,34 @@ def compute_vertical_seam_v1(energy_data):
       1. The x-coordinate where the lowest-energy seam ends.
       2. The total energy of that seam.
     """
+    high = len(energy_data)
+    width = len(energy_data[0])
+    energy_power_grid = [[0 for _ in row] for row in energy_data]
 
-    raise NotImplementedError('compute_vertical_seam_v1 is not implemented')
+    for idx_col in range(width):
+        energy_power_grid[0][idx_col] = energy_data[0][idx_col]
+
+    for idx_row in range(high):
+        for idx_col in range(width):
+            x_min = idx_col - 1 if idx_col > 0 else idx_col
+            x_max = idx_col + 1 if idx_col < width - 1 else width - 1
+
+            min_parent_energy = min(energy_power_grid[idx_row - 1][idx_col_candidate] for idx_col_candidate in range(x_min, x_max + 1))
+            energy_power_grid[idx_row][idx_col] = energy_data[idx_row][idx_col] + min_parent_energy
+
+    lowest_column = 0
+    lowest_energy = energy_power_grid[high - 1][0]
+
+    for idx_col in range(1, width):
+        column_energy = energy_power_grid[high - 1][idx_col]
+        if column_energy < lowest_energy:
+            lowest_energy = column_energy
+            lowest_column = idx_col
+
+    return lowest_column, lowest_energy
 
 
-def visualize_seam_end_on_image(pixels, end_x):
+def visualize_seam_end_on_image(pixels: List[List[Color]], end_x: int):
     """
     Draws a red box at the bottom of the image at the specified x-coordinate.
     This is done to visualize approximately where a vertical seam ends.
@@ -48,7 +70,7 @@ def visualize_seam_end_on_image(pixels, end_x):
     h = len(pixels)
     w = len(pixels[0])
 
-    new_pixels = [[p for p in row] for row in pixels]
+    new_pixels: List[List[Color]] = [[p for p in row] for row in pixels]
 
     min_x = max(end_x - 5, 0)
     max_x = min(end_x + 5, w - 1)

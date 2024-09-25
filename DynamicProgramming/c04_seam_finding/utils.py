@@ -8,17 +8,17 @@ There is no need to change any code in this module.
 
 
 from PIL import Image
-
+from typing import List
 
 class Color:
     """
     A simple class representing an RGB value.
     """
 
-    def __init__(self, r, g, b):
-        self.r = r
-        self.g = g
-        self.b = b
+    def __init__(self, r: int, g: int, b: int):
+        self.r: int = r
+        self.g: int = g
+        self.b: int = b
 
     def __repr__(self):
         return f'Color({self.r}, {self.g}, {self.b})'
@@ -27,7 +27,7 @@ class Color:
         return repr(self)
 
 
-def read_image_into_array(filename: str):
+def read_image_into_array(filename: str) -> List[List[Color]]:
     """
     Read the given image into a 2D array of pixels. The result is an array,
     where each element represents a row. Each row is an array, where each
@@ -39,11 +39,11 @@ def read_image_into_array(filename: str):
     img = Image.open(filename, 'r')
     w, h = img.size
 
-    pixels = list(Color(*pixel) for pixel in img.getdata())
+    pixels = list(Color(*pixel) for pixel in img.getdata()) # type: ignore
     return [pixels[n:(n + w)] for n in range(0, w * h, w)]
 
 
-def write_array_into_image(pixels, filename):
+def write_array_into_image(pixels: List[List[Color]], filename: str):
     """
     Write the given 2D array of pixels into an image with the given filename.
     The input pixels are represented as an array, where each element is a row.
