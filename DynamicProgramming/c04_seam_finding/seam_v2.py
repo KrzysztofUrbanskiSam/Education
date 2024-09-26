@@ -67,33 +67,28 @@ def compute_vertical_seam_v2(energy_data: List[List[int]]) -> Tuple[List[int], i
     for idx_col in range(width):
         energy_power_grid[0][idx_col] = SeamEnergyWithBackPointer(energy_data[0][idx_col])
 
-    for idx_row in range(high):
+    for idx_row in range(1, high):
         for idx_col in range(width):
             x_min = idx_col - 1 if idx_col > 0 else idx_col
             x_max = idx_col + 1 if idx_col < width - 1 else width - 1
 
             min_parent_idx_col = min(range(x_min, x_max + 1), key=lambda x_candidate:energy_power_grid[idx_row - 1][x_candidate].energy)
 
-            energy_power_grid[idx_row][idx_col] = SeamEnergyWithBackPointer(energy_data[idx_row][idx_col] + energy_power_grid[idx_row - 1][min_parent_idx_col].energy)
+            energy_power_grid[idx_row][idx_col] = SeamEnergyWithBackPointer(energy_data[idx_row][idx_col] + energy_power_grid[idx_row - 1][min_parent_idx_col].energy,
+                                                                            min_parent_idx_col)
 
-    lowest_column = 0
-    lowest_energy = energy_power_grid[high - 1][0].energy
+    min_end_x = min(enumerate(energy_power_grid[high - 1]), key=lambda m: m[1].energy)[0]
+    seam_energy = energy_power_grid[-1][min_end_x].energy
 
-    for idx_col in range(1, width):
-        column_energy = energy_power_grid[high - 1][idx_col].energy
-        if column_energy < lowest_energy:
-            lowest_energy = column_energy
-            lowest_column = idx_col
+    seam_xs: List[int] = []
+    last_x: int = min_end_x
+    for idx_row in range(high - 1, -1, -1):
+        seam_xs.append(last_x)
+        last_x = energy_power_grid[idx_row][last_x].x_coordinate_in_previous_row
 
-    out_raw: List[int] = []
+    seam_xs.reverse()
 
-    prev_row_column: int = lowest_column
-    for idx_row in range(high, 0, -1):
-        out_raw.append(energy_power_grid[idx_row][prev_row_column].energy)
-        prev_row_column = energy_power_grid[idx_row][prev_row_column].x_coordinate_in_previous_row
-
-
-    return out_raw[::-1], lowest_column
+    return seam_xs, seam_energy
 
 
 def visualize_seam_on_image(pixels: List[List[Color]], seam_xs: List[int]):
