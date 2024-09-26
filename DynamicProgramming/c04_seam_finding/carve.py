@@ -12,13 +12,13 @@ resize your image!
 
 
 import sys
-
+from typing import List
 from energy import compute_energy
-from seam_v2 import compute_vertical_seam_v2, visualize_seam_on_image
+from seam_v2 import compute_vertical_seam_v2
 from utils import Color, read_image_into_array, write_array_into_image
 
 
-def remove_seam_from_image(image, seam_xs):
+def remove_seam_from_image(image: List[List[Color]], seam_xs: List[int]) -> List[List[Color]]:
     """
     Remove pixels from the given image, as indicated by each of the
     x-coordinates in the input. The x-coordinates are specified from top to
@@ -28,11 +28,13 @@ def remove_seam_from_image(image, seam_xs):
     value: the 2D grid of colors. The grid will be smaller than the input by
     one element in each row, but will have the same number of rows.
     """
+    for idx_row in range(0, len(image)):
+        del image[idx_row][seam_xs[idx_row]]
 
-    raise NotImplementedError('remove_seam_from_image is not implemented')
+    return image
 
 
-def remove_n_lowest_seams_from_image(image, num_seams_to_remove):
+def remove_n_lowest_seams_from_image(image: List[List[Color]], num_seams_to_remove: int) -> List[List[Color]]:
     """
     Iteratively:
 
@@ -52,9 +54,16 @@ def remove_n_lowest_seams_from_image(image, num_seams_to_remove):
     `num_seams_to_remove` elements in each row, but will have the same number of
     rows.
     """
+    for i in range(num_seams_to_remove):
+        print(f"Removing seam {i+1}/{num_seams_to_remove}")
+        print("Computing energy ...")
+        energy_data = compute_energy(image)
 
-    raise NotImplementedError(
-        'remove_n_lowest_seams_from_image is not implemented')
+        print("Finding the lowest-energy seam")
+        seam_xs, _ = compute_vertical_seam_v2(energy_data)
+        remove_seam_from_image(image, seam_xs)
+
+    return image
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
