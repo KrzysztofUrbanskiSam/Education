@@ -145,3 +145,108 @@ function Hello3({ name, message }) {
 Once you pass props to console you will get an error if try to assign value to prop
 
 # 12 Pass arrays and objects to component
+
+# 13 Rendering Arrays or lists in React
+
+When create a new component try to make a habit to create component in that way:
+
+```
+export default function Fruits() {
+    return <div></div>
+}
+```
+
+To loop through iterables use 'map' like:
+
+```
+const prices = [10, 20 ,30 ,40]
+prices.map((price, idx) => console.log(price, idx))
+
+const discounts = prices.map((price) => (price * 0.32))
+
+```
+
+Explaination:
+'price' -> the name of element we will have acces to. It can be inside curly brackets and it will still work, (price) => ()
+'=>' -> arrow function (callback function)
+
+# 14 Rendering Array of objects in React
+
+To access properties of an object just use '.' dot operator.
+To remember we cannot render object, just properties
+
+# 15 Rendering components inside for loop
+
+```
+  <ul>
+    {fruits.map((fruit) => (
+      <Fruit key={fruit.name} name={fruit.name} price={fruit.price} />
+    ))}
+  </ul>
+```
+
+# 16 Conditionally rendering JSX components
+
+Nothing special
+
+# 17 Rendering components using Elements variable
+
+Why we use Element components?
+In react it is a good practice to avoid multiple return statements. Element variable can solve multiple returns but how?
+
+Component variable is something like:
+
+```
+let messageOne = <h1>This is message 1</h1>;
+```
+
+In this video it was just said to define variable and change it basing on conditions. Finally in return statement return one variable/component
+
+# 18 Using tenary operator
+
+```
+let isHappy = true
+let message = isHappy ? "I am happy" : "I am not happy"
+```
+
+Example in React with JSX variable
+
+```
+  const component = display ? <Welcome /> : <Code />;
+  return component;
+
+  // Or In simpler way:
+  return display ? <Welcome /> : <Code />;
+```
+
+# 19 Conditionally rendering list items
+
+React Elements/Fragments.
+
+If you are not sure if element from list will be printed it is better to encapsulate into 'empty divs' like:
+
+```javascript
+return (
+  <>
+    {price > 7 ? (
+      <li>
+        {name} {price}$
+      </li>
+    ) : (
+      ""
+    )}
+  </>
+);
+```
+
+And then in 'browser debug' no empty div will be presented
+
+# 20 Conditionally render a message using ternary
+
+Nothing special:
+
+```javascript
+<li>
+  {name} {price}$ {soldout ? "Soldout" : ""}
+</li>
+```
