@@ -2,6 +2,8 @@
 import ConditionalComponent from "./components/ConditionalComponent";
 import Fruits from "./components/Fruits";
 import { Hello, Hello2, Hello3, Hello4 } from "./components/Hello";
+import Counter from "./components/Counter";
+import Message from "./components/Message";
 
 function App() {
   // const [count, setCount] = useState(0)
@@ -14,6 +16,8 @@ function App() {
   return (
     <div className="App">
       <Fruits />
+      {/* <Message /> */}
+      <Counter />
     </div>
   );
 }

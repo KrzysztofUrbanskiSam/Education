@@ -250,3 +250,45 @@ Nothing special:
   {name} {price}$ {soldout ? "Soldout" : ""}
 </li>
 ```
+
+# 21 Event handling in React
+
+Interacting with website.
+For buttons we need to define 'onClick' (NOTE it is JSX attribute)
+
+```js
+<button onClick={handleClick}>Click here to get Message</button>
+```
+
+Important: just pass the name of function. Do not use parenthesis
+
+# 22 State in react
+
+Props are immutable. But if you want change data dynamically use state. State is an object which holds the information controlling component.
+
+Props:
+
+- passed to component (like function parameter)
+- immutable
+
+State:
+
+- is inside component
+- can be changed (like variable inside component)
+
+# 23 State in Raect example
+
+State is like Component memory but can be changed?
+Whenever any of state variable changes it causes component to re-render.
+
+When you define state variable you have to use special function to modify state
+
+State of the component should be declared at the top
+
+# 24 Creating multiple states in React
+
+What would happen if we would like to increment/decrement by something else then 1?
+
+Nothing special. Just add one additional 'state variable'.
+
+# 25 Handling input fields in React
