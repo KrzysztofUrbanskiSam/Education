@@ -250,3 +250,107 @@ Nothing special:
   {name} {price}$ {soldout ? "Soldout" : ""}
 </li>
 ```
+
+# 21 Event handling in React
+
+Interacting with website.
+For buttons we need to define 'onClick' (NOTE it is JSX attribute)
+
+```js
+<button onClick={handleClick}>Click here to get Message</button>
+```
+
+Important: just pass the name of function. Do not use parenthesis
+
+# 22 State in react
+
+Props are immutable. But if you want change data dynamically use state. State is an object which holds the information controlling component.
+
+Props:
+
+- passed to component (like function parameter)
+- immutable
+
+State:
+
+- is inside component
+- can be changed (like variable inside component)
+
+# 23 State in Raect example
+
+State is like Component memory but can be changed?
+Whenever any of state variable changes it causes component to re-render.
+
+When you define state variable you have to use special function to modify state
+
+State of the component should be declared at the top
+
+# 24 Creating multiple states in React
+
+What would happen if we would like to increment/decrement by something else then 1?
+
+Nothing special. Just add one additional 'state variable'.
+
+# 25 Handling input fields in React
+
+First version but it is not working
+
+```js
+<div>
+  <form>
+    <input onChange={handleChange} type="text" value="FirstName" />
+  </form>
+</div>
+```
+
+To create form we use 'input' html tag. Important here is 'onChange' props which will call handleChange function when user types anything in input field. Moreover it is good to add 'name' prop to input field to identify which input field is being changed.
+
+Define function that will catch event 'e' and pass it to the function:
+
+```js
+onChange={(e) => handleChange(e)}
+```
+
+So the final code looks like:
+
+```js
+import { useState } from "react";
+
+export default function Form() {
+  const [name, setName] = useState("");
+
+  return (
+    <div>
+      <form>
+        <input
+          onChange={(e) => setName(e.target.value)}
+          type="text"
+          value={name}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+# 26 Handle multiple inputs
+
+We could do similar thing like in previous example but instead it would be better to have one state holding all needed information, like:
+
+```js
+const [name, setName] = useState({ firstName: "", lastName: "" });
+```
+
+And now when changing input field we will update state with 'spread operator':
+
+```js
+{...name, {firstName: e.target.value}}
+```
+
+# 27 Handle Form submission
+
+We need to have a button inside a form:
+
+```js
+
+```
