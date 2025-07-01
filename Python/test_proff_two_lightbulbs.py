@@ -4,7 +4,7 @@ import sys
 filename = "/home/k.urbanski/Desktop/sample_input_bulbs.txt"
 
 from collections import namedtuple
-Bulb = namedtuple('Bulb', ['start', 'end'])
+Bulb = namedtuple('Bulb11', ['start', 'end'])
 
 
 def solve_the_same_start(x_bulb: Bulb, y_bulb: Bulb):
