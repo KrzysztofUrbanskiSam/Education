@@ -22,10 +22,13 @@ OUTPUT="/tmp/e2e_test_data_generate/$(date '+%Y-%m-%d')"
 OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
 
-ROOT_SQL_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/creatives.sql
 ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
 ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
 ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
+_da_sql_preqa_creatives=${OUTPUT}/preqa_creatives.sql
+_da_sql_preqa_creatives_orig=${OUTPUT}/preqa_creatives.sql.orig
+_da_sql_ttc=${OUTPUT}/test_tvs_creatives.sql
+_da_sql_ttc_orig=${OUTPUT}/test_tvs_creatives.sql.orig
 
 ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation
 ROOT_GENERATED_TEST_TV_PARQUET=${ROOT_GENERATED_DATA}/test_tvs_creatives/parquet/test_tvs_creatives.parquet
@@ -38,6 +41,33 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
 TVS_PSIDS=()
+
+function replace_where_clause(){
+    sql_file=$1
+    where_search=$2
+    where_clause=$3
+
+    if grep -q "$where_search" "${sql_file}"; then
+        sed -i "s/$where_search.*/$where_clause/" "${sql_file}"
+    else
+        sed -i -E "s/(.*)((ORDER|GROUP) BY 1)/\1$where_clause\n\1\2/" "${sql_file}"
+    fi
+}
+
+function setup_data_activation(){
+    # Modify preqa_creatives.sql to get affected creatives
+    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
+    local where_search="WHERE[[:space:]]\+vw_creatives"
+    local where_clause="WHERE vw_creatives.id IN ($creative_ids_list)"
+
+    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives_orig}
+    replace_where_clause "${ROOT_SQL_PREQA_CREATIVES}" "${where_search}" "${where_clause}"
+    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
+}
+
+function setup_bidder(){
+
+}
 
 # Conisder making it as a dictionary
 function get_creaitve_pid(){
@@ -133,27 +163,6 @@ function setup_test_tvs() {
     done
 }
 
-function replace_where_clause(){
-    sql_file=$1
-    where_search=$2
-    where_clause=$3
-
-    if grep -q "$where_search" "${sql_file}"; then
-        sed -i "s/$where_search.*/$where_clause/" "${sql_file}"
-    else
-        sed -i -E "s/(.*)((ORDER|GROUP) BY 1)/\1$where_clause\n\1\2/" "${sql_file}"
-    fi
-}
-
-function get_preqa_creatives() {
-    # Modify preqa_creatives.sql to get affected creatives
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+vw_creatives"
-    local where_clause="WHERE vw_creatives.id IN ($creative_ids_list)"
-
-    replace_where_clause "${ROOT_SQL_PREQA_CREATIVES}" "${where_search}" "${where_clause}"
-}
-
 function get_test_tvs_creatives(){
     local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
     local where_search="WHERE[[:space:]]\+creative_id"
@@ -242,6 +251,9 @@ function get_ad_responses(){
 
 function handle_exit(){
     echo "INFO: Handling exit"
+    cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
+
+
     echo "INFO: Stopping bidder services ..."
     make stop-local-env &> /dev/null
     echo "INFO: Stopping bidder ..."
@@ -253,12 +265,12 @@ function handle_exit(){
 mkdir -p $OUTPUT
 parse_arguments "$@"
 setup_test_tvs ${CREATIVES_IDS[@]}
+setup_data_activation
+setup_bidder
 
 if [[ $REFRESH_DA_DATA == true ]]; then {
-    get_preqa_creatives
-    get_test_tvs_creatives
-    generate_test_tv_data
     generate_preqa_creatives_data
+    generate_test_tv_data
 }
 fi
 
