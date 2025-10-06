@@ -15,11 +15,18 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 DEBUG=false
+BRANCH_BIDDER="main"
+BRANCH_DA="master"
 REFRESH_DA_DATA=true
 DB_CONNECT="psql -h localhost -p 5432 -U adgear -d rtb-trader-dev"
-OUTPUT="/tmp/e2e_test_data_generate/$(date '+%Y-%m-%d')"
+OUTPUT="/tmp/ad-response-generator/$(date '+%Y-%m-%d')"
 OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
+output_ad_requests=${OUTPUT}/ad_requests
+output_ad_responses=${OUTPUT}/ad_responses
+output_artifacts=${OUTPUT}/artifacts
+output_logs=${OUTPUT}/logs
+output_setup=${OUTPUT}/setup
 
 ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
 ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
@@ -118,6 +125,16 @@ function parse_arguments() {
                     CREATIVES_IDS+=("$1")
                     shift
                 done
+                ;;
+            --branch-bidder)
+                shift
+                BRANCH_BIDDER="$1"
+                shift
+                ;;
+            --branch-data-activation)
+                shift
+                BRANCH_DA="$1"
+                shift
                 ;;
             --no-da-refresh)
                 REFRESH_DA_DATA=false
@@ -251,8 +268,8 @@ function get_ad_responses(){
     local index=0
     echo "INFO: Getting ad responses ..."
     for creative_id in "${creative_ids[@]}"; do
-        local creative_ad_response=${OUTPUT}/ad_response_${creative_id}.json
-        local creative_ad_request=${OUTPUT}/ad_request_${creative_id}.txt
+        local creative_ad_response=${output_ad_responses}/${creative_id}.json
+        local creative_ad_request=${output_ad_requests}/${creative_id}.txt
         local creative_pid=${CREATIVES_PIDS[index]}
         local tv_psid=${TVS_PSIDS[index]}
 
@@ -260,8 +277,6 @@ function get_ad_responses(){
 
         echo "curl -s '$endpoint'" &> ${creative_ad_request}
         curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
-        # echo "Ad request for ${creative_id}: ${creative_ad_request}"
-        # echo "Ad response for ${creative_id}: ${creative_ad_response}"
         echo -e "INFO: For ${creative_id}\n\tAd request: ${creative_ad_request}\n\tAd response: ${creative_ad_response}"
         index=$(expr $index + 1)
     done
@@ -282,8 +297,10 @@ function handle_exit(){
     kill -9 $bidder_pid
 }
 
-mkdir -p $OUTPUT
-mkdir -p ${OUTPUT}/logs
+[ -e $OUTPUT ] && rm -rf ${OUTPUT}
+echo "INFO: Output directory: $OUTPUT"
+mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup
+
 parse_arguments "$@"
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
@@ -295,7 +312,7 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 }
 fi
 
-convert_da_parquet_to_json
+# convert_da_parquet_to_json
 parse_parquet_files
 
 populate_bidder_with_data
