@@ -72,6 +72,18 @@ function handle_init() {
         verification_success=false
     fi
 
+    if ! command echo $GOPRIVATE | grep "github.com/adgear" &> /dev/null; then
+        echo "ERROR: Set GOPRIVATE environment variable to include github.com/adgear"
+        echo "INFO: Do this by adding 'export GOPRIVATE=\"github.com/adgear\"' to your ~/.bashrc file"
+        verification_success=false
+    fi
+
+    if ! command echo $GOPROXY | grep "https://proxy.golang.org" | grep direct &> /dev/null; then
+        echo "ERROR: Set GOPROXY environment variable to include 'https://proxy.golang.org' and 'direct'"
+        echo "INFO: Do this by adding 'export GOPROXY=\"https://proxy.golang.org,direct\"' to your ~/.bashrc file"
+        verification_success=false
+    fi
+
     if [ ! $verification_success == true ]; then
         echo "INFO: Please correct missing setup and rerun the script"
         exit 1
@@ -194,6 +206,7 @@ function parse_arguments() {
 
 function setup_test_tvs() {
     local creative_ids=("$@")
+    local creatives_ready=true
     echo "INFO: Setting up test TVs ..."
     for creative_id in "${creative_ids[@]}"; do
         # TODO: Verify creative_id is created at all
@@ -202,9 +215,16 @@ function setup_test_tvs() {
         local tv_id=$(echo $tv_data | cut -d',' -f1 | xargs)
         local tv_psid=$(echo $tv_data | cut -d',' -f2 | xargs)
 
-        local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id FROM creatives WHERE id='$creative_id';")
+        local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id, life_stage FROM creatives WHERE id='$creative_id';")
         local creative_type=$(echo $creative_data | cut -d',' -f1 | xargs)
         local creative_subtype=$(echo $creative_data | cut -d',' -f2 | xargs)
+        local creative_lifestage=$(echo $creative_data | cut -d',' -f3 | xargs)
+
+        if [[ ${creative_lifestage} != "ready" ]]; then
+            echo "WARNING: Creative ${creative_id} is not 'ready'."
+            creatives_ready=false
+            continue
+        fi
 
         # Create Dedicated Test TV
         if [[ -z $tv_id ]]; then
@@ -233,6 +253,18 @@ function setup_test_tvs() {
         TVS_PSIDS+=("$tv_psid")
         echo "INFO: Setup for creative ${creative_id} -> PID:${creative_pid} PSID:${tv_psid}"
     done
+
+    if [[ $creatives_ready != true ]]; then
+        echo "INFO: One of provided creative is not ready. Probably needs to be transcoded"
+        echo "HINT: To perform transcoding, run rtb-trader and additionally in separate terminal run:"
+        echo "HINT: QUEUE=* rails resque:work"
+        echo "HINT: Open your creative, save again, refresh preview page, and notice 'green dot' indicating creative is ready"
+    fi
+
+    if [[ ${#TVS_PSIDS[@]} == 0 ]]; then
+        echo "ERROR: No creatives were set up properly. Exiting... "
+        exit 1
+    fi
 }
 
 function get_test_tvs_creatives(){
