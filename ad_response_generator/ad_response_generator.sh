@@ -1,8 +1,5 @@
 #!/bin/bash
 
-[[ -z ${ROOT_DATA_ACTIVATION} ]] && { echo "Set 'ROOT_DATA_ACTIVATION'" ; exit 1; }
-[[ -z ${ROOT_BIDDER} ]] && { echo "Set 'ROOT_BIDDER'" ; exit 1; }
-
 # TODO:
 # Modyfikcja plikow z biddera jeszcze nie zrobiona
 # print warning/errors functions with colors
@@ -52,6 +49,43 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
 TVS_PSIDS=()
+
+function handle_init() {
+    local verification_success=true
+    if ! command cat $ROOT_DATA_ACTIVATION/.git/config 2>/dev/null | grep data-activation-producer-wrapper.git &>/dev/null ; then
+        echo "ERROR: Set 'ROOT_DATA_ACTIVATION' pointing to root of data-activation-producer-wrapper repository"
+        echo "INFO: Please pull repo from: https://github.com/adgear/data-activation-producer-wrapper"
+        verification_success=false
+    fi
+    if ! command cat $ROOT_BIDDER/.git/config 2>/dev/null | grep rtb-bidder.git &>/dev/null ; then
+        echo "ERROR: Set 'ROOT_BIDDER' pointing to root of rtb-bidder repository"
+        echo "INFO: Please pull repo from: https://github.com/adgear/rtb-trader"
+        verification_success=false
+    fi
+    if ! command -v go &> /dev/null; then
+        echo "ERROR: go is not installed. Please install go to run this script."
+        verification_success=false
+    fi
+
+    if ! command -v jq &> /dev/null; then
+        echo "ERROR: jq is not installed. Please install jq to run this script."
+        verification_success=false
+    fi
+
+    if [ ! $verification_success == true ]; then
+        echo "INFO: Please correct missing setup and rerun the script"
+        exit 1
+    fi
+
+    if ! command ${PYTHON} -c "import argparse,pyarrow" &> /dev/null; then
+        echo "WARNING: Python3 is not correctly configured. Please install argparse and pyarrow"
+        echo "INFO: Without Python it is impossible to convert data-activation output to JSON"
+    fi
+
+    [ -e $OUTPUT ] && rm -rf ${OUTPUT}
+    echo "INFO: Output directory: $OUTPUT"
+    mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup
+}
 
 function replace_where_clause(){
     sql_file=$1
@@ -119,7 +153,7 @@ function parse_arguments() {
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --creatives_ids)
+            --creatives-ids)
                 shift
                 while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
                     CREATIVES_IDS+=("$1")
@@ -273,7 +307,7 @@ function get_ad_responses(){
         local creative_pid=${CREATIVES_PIDS[index]}
         local tv_psid=${TVS_PSIDS[index]}
 
-        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=ko&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403"
+        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=en&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403"
 
         echo "curl -s '$endpoint'" &> ${creative_ad_request}
         curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
@@ -297,10 +331,7 @@ function handle_exit(){
     kill -9 $bidder_pid
 }
 
-[ -e $OUTPUT ] && rm -rf ${OUTPUT}
-echo "INFO: Output directory: $OUTPUT"
-mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup
-
+handle_init
 parse_arguments "$@"
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
