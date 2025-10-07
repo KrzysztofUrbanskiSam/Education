@@ -19,6 +19,13 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Python Debugger: Proff Road destruction",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_road_destruction.py",
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Python Debugger: Proff parkibg",
       "type": "debugpy",
       "request": "launch",
