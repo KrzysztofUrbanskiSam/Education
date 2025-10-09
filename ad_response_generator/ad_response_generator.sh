@@ -9,7 +9,13 @@
 # Add localization parquet
 # localhost , port, DB kofigurowalne
 
+
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+printf "I ${RED}love${NC} Stack Overflow\n"
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 source ${SCRIPT_DIR}/utils/verification.sh
 source ${SCRIPT_DIR}/utils/argument_parser.sh
 
@@ -243,6 +249,7 @@ function populate_bidder_with_data() {
 function run_bidder_services(){
     echo "INFO: starting bidder services ..."
     cd ${ROOT_BIDDER}
+    make stop-local-env &> /dev/null
     make start-local-env &> ${OUTPUT}/logs/bidder_services.txt
 }
 
@@ -300,7 +307,7 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 fi
 
 # convert_da_parquet_to_json
-parse_parquet_files
+# parse_parquet_files
 
 populate_bidder_with_data
 

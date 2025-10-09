@@ -4,6 +4,8 @@ const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+const { validateGamingHubImmersionContentPlus } = require("./validators");
+
 // Create Express app
 const app = express();
 
@@ -34,44 +36,100 @@ app.post("/script", (req, res) => {
     }
   }
 
-  exec(`bash ad_response_generator.sh ${params}`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Błąd: ${error.message}`);
-      return res.status(500).send(error.message);
+  exec(
+    `bash ../ad_response_generator.sh ${params}`,
+    (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Błąd: ${error.message}`);
+        return res.status(500).send(error.message);
+      }
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).send(stderr);
+      }
+
+      res.send(stdout);
     }
-    if (stderr) {
-      console.error(`stderr: ${stderr}`);
-      return res.status(500).send(stderr);
-    }
-    res.send(stdout);
-  });
+  );
 });
 
-app.post("/upload", (req, res) => {
-  const creativeType = req.body;
-  const filePath = path.join(
-    __dirname,
-    "mocks",
-    `${creativeType}_response.json`
-  );
-
-  fs.readFile(filePath, "utf8", (error, data) => {
-    if (error) {
-      console.error("Błąd odczytu pliku:", error);
-      return res
-        .status(500)
-        .json({ error: "Błąd odczytu pliku", details: error.message });
-    }
-
-    try {
-      res.send(data);
-    } catch (parseError) {
-      console.error("Błąd parsowania JSON:", parseError);
-      res
-        .status(500)
-        .json({ error: "Błąd parsowania JSON", details: parseError.message });
-    }
+const readMockFile = (creativeType) => {
+  return new Promise((resolve, reject) => {
+    const filePath = path.resolve(
+      __dirname,
+      "mocks",
+      `${creativeType}_response.json`
+    );
+    fs.readFile(filePath, "utf8", (error, data) => {
+      if (error) {
+        reject(
+          new Error(
+            `Failed to read mock file ${creativeType}: ${error.message}`
+          )
+        );
+      } else {
+        resolve(data);
+      }
+    });
   });
+};
+
+const validateResponseData = (data) => {
+  const jsonData = JSON.parse(data);
+  const valid = validateGamingHubImmersionContentPlus(jsonData);
+  if (!valid) {
+    const errors = validateGamingHubImmersionContentPlus.errors;
+    throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
+  }
+  return jsonData;
+};
+
+const confirmGeneratedData = (data) => {
+  const jsonData = JSON.parse(data);
+  const valid = validateGamingHubImmersionContentPlus(jsonData);
+  if (!valid) {
+    const errors = validateGamingHubImmersionContentPlus.errors;
+    throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
+  }
+  return valid;
+};
+
+app.post("/upload", async (req, res) => {
+  try {
+    const creativeType = req.body;
+
+    const fileData = await readMockFile(creativeType);
+
+    const validatedData = validateResponseData(fileData);
+
+    return res.status(200).json(validatedData);
+  } catch (error) {
+    console.error("Upload endpoint error:", error.message);
+
+    return res.status(500).json({
+      error: "Upload failed",
+      message: error.message,
+    });
+  }
+});
+
+app.post("/validate", async (req, res) => {
+  try {
+    const creativeType = req.body;
+
+    const fileData = await readMockFile(creativeType);
+
+    const validatedData = confirmGeneratedData(fileData);
+
+    return res.status(200).json(validatedData);
+  } catch (error) {
+    console.error("Upload endpoint error:", error.message);
+
+    return res.status(500).json({
+      error: "Upload failed",
+      message: error.message,
+    });
+  }
 });
 
 app.get("/api/status", (req, res) => {
