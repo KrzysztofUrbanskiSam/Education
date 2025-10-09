@@ -7,6 +7,11 @@
 # Add localization parquet
 # localhost , port, DB kofigurowalne
 
+
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+printf "I ${RED}love${NC} Stack Overflow\n"
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_DIR=$(git rev-parse --show-toplevel)
 # source ${REPO_DIR}/utils/print_helper.sh
@@ -239,13 +244,17 @@ function handle_exit(){
 
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
+
 do_verification
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
 
 setup_test_tvs ${CREATIVES_IDS[@]}
+
 setup_data_activation
 setup_bidder
+
+
 
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data
@@ -254,7 +263,7 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 fi
 
 # convert_da_parquet_to_json
-# parse_parquet_files
+# # parse_parquet_files
 
 populate_bidder_with_data
 run_bidder &
