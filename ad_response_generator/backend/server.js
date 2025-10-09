@@ -1,8 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
+
 const fs = require("fs");
 const path = require("path");
+
+const { validateGamingHubImmersionContentPlus } = require("./validators");
 
 // Create Express app
 const app = express();
@@ -34,44 +37,116 @@ app.post("/script", (req, res) => {
     }
   }
 
-  exec(`bash ad_response_generator.sh ${params}`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Błąd: ${error.message}`);
-      return res.status(500).send(error.message);
+  exec(
+    `bash ../ad_response_generator.sh ${params}`,
+    (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Błąd: ${error.message}`);
+        return res.status(500).send(error.message);
+      }
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).send(stderr);
+      }
+
+      res.send(stdout);
     }
-    if (stderr) {
-      console.error(`stderr: ${stderr}`);
-      return res.status(500).send(stderr);
-    }
-    res.send(stdout);
-  });
+  );
 });
 
-app.post("/upload", (req, res) => {
-  const creativeType = req.body;
-  const filePath = path.join(
-    __dirname,
-    "mocks",
-    `${creativeType}_response.json`
-  );
-
-  fs.readFile(filePath, "utf8", (error, data) => {
-    if (error) {
-      console.error("Błąd odczytu pliku:", error);
-      return res
-        .status(500)
-        .json({ error: "Błąd odczytu pliku", details: error.message });
-    }
-
-    try {
-      res.send(data);
-    } catch (parseError) {
-      console.error("Błąd parsowania JSON:", parseError);
-      res
-        .status(500)
-        .json({ error: "Błąd parsowania JSON", details: parseError.message });
-    }
+const readMockFile = (creativeType) => {
+  return new Promise((resolve, reject) => {
+    const filePath = path.resolve(
+      __dirname,
+      "mocks",
+      `${creativeType}_response.json`
+    );
+    fs.readFile(filePath, "utf8", (error, data) => {
+      if (error) {
+        reject(
+          new Error(
+            `Failed to read mock file ${creativeType}: ${error.message}`
+          )
+        );
+      } else {
+        resolve(data);
+      }
+    });
   });
+};
+
+const readAdResponseFile = (pathName) => {
+  return new Promise((resolve, reject) => {
+    const filePath = path.resolve(__dirname, "../", `${pathName}`);
+
+    fs.readFile(filePath, "utf8", (error, data) => {
+      if (error) {
+        reject(
+          new Error(
+            `Failed to read ad response file ${pathName}: ${error.message}`
+          )
+        );
+      } else {
+        resolve(data);
+      }
+    });
+  });
+};
+
+const validateResponseData = (data) => {
+  const valid = validateGamingHubImmersionContentPlus(data);
+  if (!valid) {
+    return validateGamingHubImmersionContentPlus.errors;
+  }
+  return valid;
+};
+
+app.post("/open_ad_reponse", async (req, res) => {
+  try {
+    const pathName = req.body;
+    const fileData = await readAdResponseFile(pathName);
+
+    return res.status(200).json(JSON.parse(fileData));
+  } catch (error) {
+    console.error("Upload endpoint error:", error.message);
+
+    return res.status(500).json({
+      error: "Upload failed",
+      message: error.message,
+    });
+  }
+});
+
+app.post("/upload_mock", async (req, res) => {
+  try {
+    const creativeType = req.body;
+    const fileData = await readMockFile(creativeType);
+    return res.status(200).json(fileData);
+  } catch (error) {
+    console.error("Upload endpoint error:", error.message);
+
+    return res.status(500).json({
+      error: "Upload failed",
+      message: error.message,
+    });
+  }
+});
+
+app.post("/validate", async (req, res) => {
+  try {
+    const addResponsePath = req.body;
+    const fileData = await readAdResponseFile(addResponsePath);
+    const validatedData = validateResponseData(JSON.parse(fileData));
+
+    return res.status(200).json(validatedData);
+  } catch (error) {
+    console.error("Upload endpoint error:", error.message);
+
+    return res.status(500).json({
+      error: "Upload failed",
+      message: error.message,
+    });
+  }
 });
 
 app.get("/api/status", (req, res) => {

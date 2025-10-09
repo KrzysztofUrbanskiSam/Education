@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { openMock } from "./scriptService";
 
-function PatternSection({ creativeType }) {
+function TestSection({ creativeType }) {
   const [pattern, setPattern] = useState("");
 
   const handleOpenMock = async () => {
@@ -15,13 +15,17 @@ function PatternSection({ creativeType }) {
       <button name="openMock" onClick={handleOpenMock}>
         Otwórz wzór
       </button>
-      <pre>{pattern || "No pattern loaded choose creative type"}</pre>
+      <pre>
+        {pattern
+          ? JSON.stringify(pattern, null, 2)
+          : "No pattern loaded choose creative type"}
+      </pre>
     </div>
   );
 }
 
-PatternSection.propTypes = {
+TestSection.propTypes = {
   creativeType: PropTypes.string.isRequired,
 };
 
-export default PatternSection;
+export default TestSection;

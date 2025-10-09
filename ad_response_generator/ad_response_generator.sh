@@ -1,30 +1,33 @@
 #!/bin/bash
 
 # TODO:
-# Modyfikcja plikow z biddera jeszcze nie zrobiona
 # print warning/errors functions with colors
-# init verifcation function (variables, python configuration, sudo run, weryfikacja czy baz dziala)
 # undo modyfikacji
 # Mozliwosc widzenia modyfikacji w term plikach
 # Add localization parquet
 # localhost , port, DB kofigurowalne
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source ${SCRIPT_DIR}/utils/verification.sh
-source ${SCRIPT_DIR}/utils/argument_parser.sh
+REPO_DIR=$(git rev-parse --show-toplevel)
+# source ${REPO_DIR}/utils/print_helper.sh
+source ${REPO_DIR}/ad_response_generator/utils/verification.sh
+source ${REPO_DIR}/ad_response_generator/utils/argument_parser.sh
+source ${REPO_DIR}/ad_response_generator/utils/repository_setuper.sh
+source ${REPO_DIR}/ad_response_generator/utils/waiters.sh
 
 DEBUG=false
 AD_LANGUAGE="en"
-BRANCH_BIDDER="main"
-BRANCH_DA="master"
+BRANCH_BIDDER=""
+BRANCH_DA=""
 REFRESH_DA_DATA=true
+UI_MODE=false
 
 DB_HOST="localhost"
 DB_PORT=5432
 DB_USER="adgear"
 DB_NAME="rtb-trader-dev"
 
-OUTPUT="${SCRIPT_DIR}/runs/$(date '+%Y%m%d-%H%M%S')"
+OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
 OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
 output_ad_requests=${OUTPUT}/ad_requests
@@ -32,23 +35,10 @@ output_ad_responses=${OUTPUT}/ad_responses
 output_artifacts=${OUTPUT}/artifacts
 output_logs=${OUTPUT}/logs
 output_setup=${OUTPUT}/setup
+output_backup=${OUTPUT}/backup
 
-ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
-ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
-ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
-_da_sql_preqa_creatives=${OUTPUT}/preqa_creatives.sql
-_da_sql_preqa_creatives_orig=${OUTPUT}/preqa_creatives.sql.orig
-_da_sql_ttc=${OUTPUT}/test_tvs_creatives.sql
-_da_sql_ttc_orig=${OUTPUT}/test_tvs_creatives.sql.orig
-
-ROOT_BIDDER_DOCKER_COMPOSE=${ROOT_BIDDER}/docker/bidder/docker-compose.deps.yml
-ROOT_BIDDER_CONFIG_LOCAL=${ROOT_BIDDER}/configs/bidder/default-local.yaml
-_bidder_docker_compose_orig=${OUTPUT}/docker-compose.deps.yml
-_bidder_config_local_orig=${OUTPUT}/default-local.yaml
-
-ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation
-ROOT_GENERATED_TEST_TV_PARQUET=${ROOT_GENERATED_DATA}/test_tvs_creatives/parquet/test_tvs_creatives.parquet
-ROOT_GENERATED_PREQA_CREATIVES_PARQUET=${ROOT_GENERATED_DATA}/preqa_creatives/parquet/preqa_creatives.parquet
+ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}
+ROOT_BIDDER=${ROOT_BIDDER}
 
 PYTHON="/home/k.urbanski/.venv/bin/python"
 PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
@@ -57,44 +47,6 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
 TVS_PSIDS=()
-
-function replace_where_clause(){
-    sql_file=$1
-    where_search=$2
-    where_clause=$3
-
-    if grep -q "$where_search" "${sql_file}"; then
-        sed -i "s/$where_search.*/$where_clause/" "${sql_file}"
-    else
-        sed -i -E "s/(.*)((ORDER|GROUP) BY 1)/\1$where_clause\n\1\2/" "${sql_file}"
-    fi
-}
-
-function setup_data_activation(){
-    # Modify preqa_creatives.sql to get affected creatives
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+vw_creatives"
-    local where_clause="WHERE vw_creatives.id IN ($creative_ids_list)"
-
-    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives_orig}
-    replace_where_clause "${ROOT_SQL_PREQA_CREATIVES}" "${where_search}" "${where_clause}"
-    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
-
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+creative_id"
-    local where_clause="WHERE creative_id IN ($creative_ids_list)"
-    cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc_orig}
-    replace_where_clause "${ROOT_SQL_TEST_TVS_CREATIVES}" "${where_search}" "${where_clause}"
-}
-
-function setup_bidder(){
-    cp ${ROOT_BIDDER_DOCKER_COMPOSE} ${_bidder_docker_compose_orig}
-    cp ${ROOT_BIDDER_CONFIG_LOCAL} ${_bidder_config_local_orig}
-
-    sed -i -r -E "s|(-.*fake-ups.ym)|# \1|g" ${ROOT_BIDDER_DOCKER_COMPOSE}
-    sed -i -r -e "s|url:\s*.*unleash.*|url: http://localhost:51000|g" ${ROOT_BIDDER_CONFIG_LOCAL}
-    sed -i '/^familyhub:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
-}
 
 # Conisder making it as a dictionary
 function get_creaitve_pid(){
@@ -136,24 +88,25 @@ function setup_test_tvs() {
             exit 1
         fi
 
-        local tv_name="test_tv_for_${creative_id}"
-        local tv_data=$(execute_sql_query "SELECT id, psid FROM test_tvs WHERE name='$tv_name';")
-        local tv_id=$(echo $tv_data | cut -d',' -f1 | xargs)
-        local tv_psid=$(echo $tv_data | cut -d',' -f2 | xargs)
-
-
-
         if [[ ${creative_lifestage} != "ready" ]]; then
-            echo "WARNING: Creative ${creative_id} is not 'ready'."
+            echo "WARNING: Creative ${creative_id} is not 'ready'. Ignoring from futher processing"
             creatives_ready=false
             continue
         fi
+
+        local tv_name="test_tv_for_${creative_id}"
+
+        # TODO: Add protection if creative has more then 1 assigned TV (like 'fake' and 'production')
+        local tv_data=$(execute_sql_query "SELECT id, psid FROM test_tvs WHERE name='$tv_name';")
+        local tv_id=$(echo $tv_data | cut -d',' -f1 | xargs)
+        local tv_psid=$(echo $tv_data | cut -d',' -f2 | xargs)
 
         # Create Dedicated Test TV
         if [[ -z $tv_id ]]; then
             local tv_psid=$(tr -dc a-z0-9 </dev/urandom | head -c 32; echo)
             $DEBUG && echo "Creating new test TV record for psid: $psid"
             $DB_CONNECT -c "INSERT INTO test_tvs (name, model, country_id, psid, state) VALUES ('$tv_name', '22-25', 238, '$tv_psid', 'active');"
+            # $DB_CONNECT -c "INSERT INTO test_tvs (name, model, country_id, psid, state) VALUES ('$tv_name', '22-25', 238, 'i5owir66ktsotl7s2g7yuapxlb4cejcy', 'active');"
             local tv_data=$(execute_sql_query "SELECT id, psid FROM test_tvs WHERE name='$tv_name';")
             local tv_id=$(echo $tv_data | cut -d',' -f1)
         fi
@@ -202,7 +155,7 @@ function generate_test_tv_data(){
     echo "INFO: Generating Test TV data. May take 10s ..."
     rm -f ${ROOT_GENERATED_TEST_TV_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
-    ./dev-run.sh test_tvs_creatives &> /dev/null
+    ./dev-run.sh test_tvs_creatives &> ${OUTPUT}/logs/data-activation-test_tvs.txt
     if [ ! -e ${ROOT_GENERATED_TEST_TV_PARQUET} ]; then
         echo "Failed to generate test_tvs_creatives parquet. Exiting ..." && exit 1
     fi
@@ -212,7 +165,7 @@ function generate_preqa_creatives_data(){
     echo "INFO: Generating preqa creatives data. May take 15s"
     rm -f ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
-    ./dev-run.sh preqa_creatives &> /dev/null
+    ./dev-run.sh preqa_creatives &> ${OUTPUT}/logs/data-activation-preqa-creatives.txt
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
         echo "ERROR: Failed to generate preqa_creatives parquet. Exiting ..." && exit 1
     fi
@@ -240,16 +193,12 @@ function populate_bidder_with_data() {
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/creatives.parquet
 }
 
-function run_bidder_services(){
-    echo "INFO: starting bidder services ..."
-    cd ${ROOT_BIDDER}
-    make start-local-env &> ${OUTPUT}/logs/bidder_services.txt
-}
-
 function run_bidder(){
     echo "INFO: starting bidder ..."
     cd ${ROOT_BIDDER}
-    go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
+    make stop-rtb-bidder &> ${OUTPUT}/logs/bidder_stop.txt
+    make run-rtb-bidder  &> ${OUTPUT}/logs/bidder_start.txt
+    # go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
 }
 
 function get_ad_responses(){
@@ -262,7 +211,7 @@ function get_ad_responses(){
         local creative_pid=${CREATIVES_PIDS[index]}
         local tv_psid=${TVS_PSIDS[index]}
 
-        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=${AD_LANGUAGE}&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403"
+        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=${AD_LANGUAGE}&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403&Firmver=T-HKMAKUC-1540.3"
 
         echo "curl -s '$endpoint'" &> ${creative_ad_request}
         curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
@@ -278,17 +227,22 @@ function handle_exit(){
     cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
     cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
 
-    echo "INFO: Stopping bidder services ..."
-    make stop-local-env &> /dev/null
-    echo "INFO: Stopping bidder ..."
-    bidder_pid=$(sudo ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
-    echo $bidder_pid
-    kill -9 $bidder_pid
+    if [[ $UI_MODE == false ]]; then
+        echo "INFO: Stopping bidder ..."
+        make down-rtb-bidder &> /dev/null
+    else
+        echo "INFO: Will not stop bidder since it is UI invocation"
+        echo "HINT: To stop bidder manually run: make down-rtb-bidder in ${ROOT_BIDDER}"
+    fi
 }
+
 
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
 do_verification
+setup_da_branch ${BRANCH_DA}
+setup_bidder_branch ${BRANCH_BIDDER}
+
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
 setup_bidder
@@ -300,14 +254,12 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 fi
 
 # convert_da_parquet_to_json
-parse_parquet_files
+# parse_parquet_files
 
 populate_bidder_with_data
-
-run_bidder_services &
-sleep 5s
 run_bidder &
-sleep 5s
+sleep 10s
+# wait_for_bidder 20
 
 get_ad_responses ${CREATIVES_IDS[@]}
 

@@ -151,14 +151,12 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  transform: translateY(-2px);
-  background-color: #0f1e7a;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+button.valid {
+  background-color: #2e8d01;
 }
 
-button:active {
-  transform: translateY(0);
+button.invalid {
+  background-color: #ff0000;
 }
 
 .present-section pre {
@@ -174,3 +172,4 @@ button:active {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
