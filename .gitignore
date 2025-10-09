@@ -10,6 +10,9 @@
 /test/version_tmp/
 /tmp/
 
+# Specific for 'Ad response generator'
+ad_response_generator/runs/
+
 # Python
 __pycache__/
 *.py[cod]
