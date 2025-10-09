@@ -10,13 +10,21 @@
 # localhost , port, DB kofigurowalne
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source ${SCRIPT_DIR}/utils/verification.sh
+source ${SCRIPT_DIR}/utils/argument_parser.sh
 
 DEBUG=false
+AD_LANGUAGE="en"
 BRANCH_BIDDER="main"
 BRANCH_DA="master"
 REFRESH_DA_DATA=true
-DB_CONNECT="psql -h localhost -p 5432 -U adgear -d rtb-trader-dev"
-OUTPUT="/tmp/ad-response-generator/$(date '+%Y-%m-%d')"
+
+DB_HOST="localhost"
+DB_PORT=5432
+DB_USER="adgear"
+DB_NAME="rtb-trader-dev"
+
+OUTPUT="${SCRIPT_DIR}/runs/$(date '+%Y%m%d-%H%M%S')"
 OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
 output_ad_requests=${OUTPUT}/ad_requests
@@ -49,55 +57,6 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
 TVS_PSIDS=()
-
-function handle_init() {
-    local verification_success=true
-    if ! command cat $ROOT_DATA_ACTIVATION/.git/config 2>/dev/null | grep data-activation-producer-wrapper.git &>/dev/null ; then
-        echo "ERROR: Set 'ROOT_DATA_ACTIVATION' pointing to root of data-activation-producer-wrapper repository"
-        echo "INFO: Please pull repo from: https://github.com/adgear/data-activation-producer-wrapper"
-        verification_success=false
-    fi
-    if ! command cat $ROOT_BIDDER/.git/config 2>/dev/null | grep rtb-bidder.git &>/dev/null ; then
-        echo "ERROR: Set 'ROOT_BIDDER' pointing to root of rtb-bidder repository"
-        echo "INFO: Please pull repo from: https://github.com/adgear/rtb-trader"
-        verification_success=false
-    fi
-    if ! command -v go &> /dev/null; then
-        echo "ERROR: go is not installed. Please install go to run this script."
-        verification_success=false
-    fi
-
-    if ! command -v jq &> /dev/null; then
-        echo "ERROR: jq is not installed. Please install jq to run this script."
-        verification_success=false
-    fi
-
-    if ! command echo $GOPRIVATE | grep "github.com/adgear" &> /dev/null; then
-        echo "ERROR: Set GOPRIVATE environment variable to include github.com/adgear"
-        echo "INFO: Do this by adding 'export GOPRIVATE=\"github.com/adgear\"' to your ~/.bashrc file"
-        verification_success=false
-    fi
-
-    if ! command echo $GOPROXY | grep "https://proxy.golang.org" | grep direct &> /dev/null; then
-        echo "ERROR: Set GOPROXY environment variable to include 'https://proxy.golang.org' and 'direct'"
-        echo "INFO: Do this by adding 'export GOPROXY=\"https://proxy.golang.org,direct\"' to your ~/.bashrc file"
-        verification_success=false
-    fi
-
-    if [ ! $verification_success == true ]; then
-        echo "INFO: Please correct missing setup and rerun the script"
-        exit 1
-    fi
-
-    if ! command ${PYTHON} -c "import argparse,pyarrow" &> /dev/null; then
-        echo "WARNING: Python3 is not correctly configured. Please install argparse and pyarrow"
-        echo "INFO: Without Python it is impossible to convert data-activation output to JSON"
-    fi
-
-    [ -e $OUTPUT ] && rm -rf ${OUTPUT}
-    echo "INFO: Output directory: $OUTPUT"
-    mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup
-}
 
 function replace_where_clause(){
     sql_file=$1
@@ -161,64 +120,28 @@ function execute_sql_query() {
     echo "$($DB_CONNECT -t -c "$1" | tr '|' ',')"
 }
 
-function parse_arguments() {
-    # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --creatives-ids)
-                shift
-                while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
-                    CREATIVES_IDS+=("$1")
-                    shift
-                done
-                ;;
-            --branch-bidder)
-                shift
-                BRANCH_BIDDER="$1"
-                shift
-                ;;
-            --branch-data-activation)
-                shift
-                BRANCH_DA="$1"
-                shift
-                ;;
-            --no-da-refresh)
-                REFRESH_DA_DATA=false
-                shift
-                ;;
-            --debug)
-                DEBUG=true
-                shift
-                ;;
-            --output)
-                shift
-                OUTPUT="$1"
-                shift
-                ;;
-            *)
-                echo "Unknown option: $1"
-                echo "Usage: $0 --creatives_ids id1 id2 ... --psids psid1 psid2 ..."
-                exit 1
-                ;;
-        esac
-    done
-}
 
 function setup_test_tvs() {
     local creative_ids=("$@")
     local creatives_ready=true
     echo "INFO: Setting up test TVs ..."
     for creative_id in "${creative_ids[@]}"; do
-        # TODO: Verify creative_id is created at all
+        local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id, life_stage FROM creatives WHERE id='$creative_id';")
+        local creative_type=$(echo $creative_data | cut -d',' -f1 | xargs)
+        local creative_subtype=$(echo $creative_data | cut -d',' -f2 | xargs)
+        local creative_lifestage=$(echo $creative_data | cut -d',' -f3 | xargs)
+
+        if [[ -z "${creative_data}" ]]; then
+            echo "ERROR: Creative ${creative_id} does not exist in database. Exiting..."
+            exit 1
+        fi
+
         local tv_name="test_tv_for_${creative_id}"
         local tv_data=$(execute_sql_query "SELECT id, psid FROM test_tvs WHERE name='$tv_name';")
         local tv_id=$(echo $tv_data | cut -d',' -f1 | xargs)
         local tv_psid=$(echo $tv_data | cut -d',' -f2 | xargs)
 
-        local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id, life_stage FROM creatives WHERE id='$creative_id';")
-        local creative_type=$(echo $creative_data | cut -d',' -f1 | xargs)
-        local creative_subtype=$(echo $creative_data | cut -d',' -f2 | xargs)
-        local creative_lifestage=$(echo $creative_data | cut -d',' -f3 | xargs)
+
 
         if [[ ${creative_lifestage} != "ready" ]]; then
             echo "WARNING: Creative ${creative_id} is not 'ready'."
@@ -262,7 +185,7 @@ function setup_test_tvs() {
     fi
 
     if [[ ${#TVS_PSIDS[@]} == 0 ]]; then
-        echo "ERROR: No creatives were set up properly. Exiting... "
+        echo "ERROR: Provided creatives were not set up properly. Exiting... "
         exit 1
     fi
 }
@@ -339,7 +262,7 @@ function get_ad_responses(){
         local creative_pid=${CREATIVES_PIDS[index]}
         local tv_psid=${TVS_PSIDS[index]}
 
-        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=en&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403"
+        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=${AD_LANGUAGE}&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403"
 
         echo "curl -s '$endpoint'" &> ${creative_ad_request}
         curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
@@ -363,8 +286,9 @@ function handle_exit(){
     kill -9 $bidder_pid
 }
 
-handle_init
 parse_arguments "$@"
+DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
+do_verification
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
 setup_bidder
