@@ -1,1 +1,58 @@
-1111
+{
+  "gamerhub_immersive_thumb_banner": [
+    {
+      "ad": {
+        "adinfo": {
+          "adid": "0-0-468112-0",
+          "adtype": "8",
+          "guid": "bdc617b0-b29b-4523-944a-0f6b491b03b5-1",
+          "adResponseVersion": "1.0",
+          "responseTime": "1759996683",
+          "expireTime": "1760000283",
+          "refreshInterval": "30000"
+        },
+        "creative": {
+          "cid": "729975",
+          "clicktype": "2",
+          "clickaction": {
+            "url": "http://localhost:8085/trackers/8dDe1ryjiIlcEYOcChC9xhewsptFI5RKD2tJGwO1EgExGAYgVigBOJDJHEAIYAFoB3gC2gEDMTAz5QEBAAB_igIRY29tLnNhbXN1bmd0di5hZHPSAidBTURDNDg5NC5ldS5jb3JwLnNhbXN1bmdlbGVjdHJvbmljcy5uZXTaAigIAxIkZWJlYjQ5YTYtOTFhMS03ODIxLWQ5MTgtMDAwYzc0NzA1NTA16AKL1p3HBoIDIGlqN2k1NW1wODY0am4xZ3I2cGViZXU2Z2I1Y3RhaHV4iAMAmANnqAMAwAPnD8oDB1BPTlRVU03iAwkyMy4zLjE0MDOqBAR0aWxlsgQRMjNfUE9OVFVTTV9RVFZfOGu6BBNULUlORk9MSU5LMjAyMy0xMDEzwgQBKvgEAJgFALIFAzI2MLoFAjg20AUA2gULY3VybC83LjgxLjA=/retrieve.gif?AG_TID=729975"
+          },
+          "adtext": "Watch Trailer",
+          "colorPreset": {
+            "buttonBackground": "CP_Plane230",
+            "buttonLabel": "CP_Info1100"
+          },
+          "backgroundimage": {
+            "width": "3840",
+            "height": "2160",
+            "imageurl": "https://cdn-stv.adgrx.com/image-4730431834094040042.jpg",
+            "position": "18"
+          },
+          "thumbnailimage": {
+            "width": "312",
+            "height": "176",
+            "imageurl": "https://cdn-stv.adgrx.com/image-903625703095276324969.png"
+          },
+          "autoplay": {
+            "video": {
+              "vast": "http:\\/\\/localhost:8085\\/loads\\/8dDe1ryjiIlcEYOcChC9xhewsptFI5RKD2tJGwO1EgExGAYgVigBOJDJHEAIYAFoB3gC2gEDMTAz5QEBAAB_igIRY29tLnNhbXN1bmd0di5hZHPSAidBTURDNDg5NC5ldS5jb3JwLnNhbXN1bmdlbGVjdHJvbmljcy5uZXTaAigIAxIkZWJlYjQ5YTYtOTFhMS03ODIxLWQ5MTgtMDAwYzc0NzA1NTA16AKL1p3HBoIDIGlqN2k1NW1wODY0am4xZ3I2cGViZXU2Z2I1Y3RhaHV4iAMAmANnqAMAwAPnD8oDB1BPTlRVU03iAwkyMy4zLjE0MDOqBAR0aWxlsgQRMjNfUE9OVFVTTV9RVFZfOGu6BBNULUlORk9MSU5LMjAyMy0xMDEzwgQBKvgEAJgFALIFAzI2MLoFAjg20AUA2gULY3VybC83LjgxLjA=\\/468112.xml?AG_WP=0.0&AG_IT=0&AG_VV=3.0&AG_TID=729975&AG_AP_INSET=1&IMVID=1&tile_pos=1",
+              "videourl": "http://cdn.adgrx.com/files/9L/VBrgW_q-a1xWJqsehxEA/transcoded_1920x1080_TheLastOfUs5secs_3.mp4",
+              "duration": "5"
+            }
+          },
+          "tracking": {
+            "impressionreportingurl": "http://localhost:8085/impressions/8dDe1ryjiIlcEYOcChC9xhewsptFI5RKD2tJGwO1EgExGAYgVigBOJDJHEAIYAFoB3gC2gEDMTAz5QEBAAB_igIRY29tLnNhbXN1bmd0di5hZHPSAidBTURDNDg5NC5ldS5jb3JwLnNhbXN1bmdlbGVjdHJvbmljcy5uZXTaAigIAxIkZWJlYjQ5YTYtOTFhMS03ODIxLWQ5MTgtMDAwYzc0NzA1NTA16AKL1p3HBoIDIGlqN2k1NW1wODY0am4xZ3I2cGViZXU2Z2I1Y3RhaHV4iAMAmANnqAMAwAPnD8oDB1BPTlRVU03iAwkyMy4zLjE0MDOqBAR0aWxlsgQRMjNfUE9OVFVTTV9RVFZfOGu6BBNULUlORk9MSU5LMjAyMy0xMDEzwgQBKvgEAJgFALIFAzI2MLoFAjg20AUA2gULY3VybC83LjgxLjA=/468112.gif?AG_ET=1760000283&AG_TID=729975&AG_WP=0.0",
+            "clickreporturl": "http://localhost:8085/clicks/8dDe1ryjiIlcEYOcChC9xhewsptFI5RKD2tJGwO1EgExGAYgVigBOJDJHEAIYAFoB3gC2gEDMTAz5QEBAAB_igIRY29tLnNhbXN1bmd0di5hZHPSAidBTURDNDg5NC5ldS5jb3JwLnNhbXN1bmdlbGVjdHJvbmljcy5uZXTaAigIAxIkZWJlYjQ5YTYtOTFhMS03ODIxLWQ5MTgtMDAwYzc0NzA1NTA16AKL1p3HBoIDIGlqN2k1NW1wODY0am4xZ3I2cGViZXU2Z2I1Y3RhaHV4iAMAmANnqAMAwAPnD8oDB1BPTlRVU03iAwkyMy4zLjE0MDOqBAR0aWxlsgQRMjNfUE9OVFVTTV9RVFZfOGu6BBNULUlORk9MSU5LMjAyMy0xMDEzwgQBKvgEAJgFALIFAzI2MLoFAjg20AUA2gULY3VybC83LjgxLjA=/?AG_TID=729975",
+            "thirdpartyclickreporturl": [],
+            "thirdpartyimpressionreportingurl": [],
+            "exitdelayreporturl": "http://localhost:8085/blank.gif",
+            "blankreportingurl": "",
+            "replayreporturl": "http://localhost:8085/trackers/8dDe1ryjiIlcEYOcChC9xhewsptFI5RKD2tJGwO1EgExGAYgVigBOJDJHEAIYAFoB3gC2gEDMTAz5QEBAAB_igIRY29tLnNhbXN1bmd0di5hZHPSAidBTURDNDg5NC5ldS5jb3JwLnNhbXN1bmdlbGVjdHJvbmljcy5uZXTaAigIAxIkZWJlYjQ5YTYtOTFhMS03ODIxLWQ5MTgtMDAwYzc0NzA1NTA16AKL1p3HBoIDIGlqN2k1NW1wODY0am4xZ3I2cGViZXU2Z2I1Y3RhaHV4iAMAmANnqAMAwAPnD8oDB1BPTlRVU03iAwkyMy4zLjE0MDOqBAR0aWxlsgQRMjNfUE9OVFVTTV9RVFZfOGu6BBNULUlORk9MSU5LMjAyMy0xMDEzwgQBKvgEAJgFALIFAzI2MLoFAjg20AUA2gULY3VybC83LjgxLjA=/replay.gif",
+            "hoverreporturl": "http://localhost:8085/trackers/8dDe1ryjiIlcEYOcChC9xhewsptFI5RKD2tJGwO1EgExGAYgVigBOJDJHEAIYAFoB3gC2gEDMTAz5QEBAAB_igIRY29tLnNhbXN1bmd0di5hZHPSAidBTURDNDg5NC5ldS5jb3JwLnNhbXN1bmdlbGVjdHJvbmljcy5uZXTaAigIAxIkZWJlYjQ5YTYtOTFhMS03ODIxLWQ5MTgtMDAwYzc0NzA1NTA16AKL1p3HBoIDIGlqN2k1NW1wODY0am4xZ3I2cGViZXU2Z2I1Y3RhaHV4iAMAmANnqAMAwAPnD8oDB1BPTlRVU03iAwkyMy4zLjE0MDOqBAR0aWxlsgQRMjNfUE9OVFVTTV9RVFZfOGu6BBNULUlORk9MSU5LMjAyMy0xMDEzwgQBKvgEAJgFALIFAzI2MLoFAjg20AUA2gULY3VybC83LjgxLjA=/hover.gif?AG_TID=729975",
+            "thirdpartyhoverreporturl": []
+          }
+        }
+      }
+    }
+  ]
+}

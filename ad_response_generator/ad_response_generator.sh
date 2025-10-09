@@ -9,7 +9,13 @@
 # Add localization parquet
 # localhost , port, DB kofigurowalne
 
+
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+printf "I ${RED}love${NC} Stack Overflow\n"
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 source ${SCRIPT_DIR}/utils/verification.sh
 source ${SCRIPT_DIR}/utils/argument_parser.sh
 
@@ -243,7 +249,10 @@ function populate_bidder_with_data() {
 function run_bidder_services(){
     echo "INFO: starting bidder services ..."
     cd ${ROOT_BIDDER}
-    make start-local-env &> ${OUTPUT}/logs/bidder_services.txt
+    echo "222222222"
+    # exit 0
+    # make stop-local-env &> /dev/null
+    # make start-local-env &> ${OUTPUT}/logs/bidder_services.txt
 }
 
 function run_bidder(){
@@ -288,10 +297,14 @@ function handle_exit(){
 
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
+
 do_verification
 setup_test_tvs ${CREATIVES_IDS[@]}
+
 setup_data_activation
 setup_bidder
+
+
 
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data
@@ -300,9 +313,11 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 fi
 
 # convert_da_parquet_to_json
-parse_parquet_files
+# parse_parquet_files
 
 populate_bidder_with_data
+echo "111111111111111111111"
+# exit 0
 
 run_bidder_services &
 sleep 5s
