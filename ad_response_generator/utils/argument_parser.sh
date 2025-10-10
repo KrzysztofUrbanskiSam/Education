@@ -12,7 +12,7 @@ function parse_arguments() {
                 ;;
             --branch-bidder)
                 shift; BRANCH_BIDDER="$1"; shift ;;
-            --branch-data-activation)
+            --branch-data-activation | --branch-da)
                 shift; BRANCH_DA="$1"; shift ;;
             --db-*)
                 local param="${1#--db-}"
