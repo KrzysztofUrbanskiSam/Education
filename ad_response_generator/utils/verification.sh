@@ -1,10 +1,5 @@
 function do_verification() {
     local verification_success=true
-    if ! command cat $ROOT_DATA_ACTIVATION/.git/config 2>/dev/null | grep data-activation-producer-wrapper.git &>/dev/null ; then
-        echo "ERROR: Set 'ROOT_DATA_ACTIVATION' pointing to root of data-activation-producer-wrapper repository"
-        echo "INFO: Please pull repo from: https://github.com/adgear/data-activation-producer-wrapper"
-        verification_success=false
-    fi
     if ! command cat $ROOT_BIDDER/.git/config 2>/dev/null | grep rtb-bidder.git &>/dev/null ; then
         echo "ERROR: Set 'ROOT_BIDDER' pointing to root of rtb-bidder repository"
         echo "INFO: Please pull repo from: https://github.com/adgear/rtb-bidder"
@@ -72,6 +67,14 @@ function do_verification() {
     if ! command erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell &> /dev/null; then
         echo "WARNING: Erlang is not installed."
         echo "HINT: Without Erlang it is impossible to generate term data"
+    fi
+
+    if command ss | grep 3000 &> /dev/null; then
+        echo "WARNING: There is and application working on port 3000. Script may work improperly"
+    fi
+
+    if command ss | grep 8085 &> /dev/null; then
+        echo "WARNING: There is and application working on port 8085. Script may work improperly"
     fi
 
     [ -e $OUTPUT ] && rm -rf ${OUTPUT}

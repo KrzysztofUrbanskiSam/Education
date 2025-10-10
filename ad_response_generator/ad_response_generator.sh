@@ -15,14 +15,16 @@ NC='\033[0m' # No Color
 printf "I ${RED}love${NC} Stack Overflow\n"
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+REPO_DIR=$(git rev-parse --show-toplevel)
 
-source ${SCRIPT_DIR}/utils/verification.sh
-source ${SCRIPT_DIR}/utils/argument_parser.sh
+source ${REPO_DIR}/ad_response_generator/utils/verification.sh
+source ${REPO_DIR}/ad_response_generator/utils/argument_parser.sh
+source ${REPO_DIR}/ad_response_generator/utils/repository_setuper.sh
 
 DEBUG=false
 AD_LANGUAGE="en"
-BRANCH_BIDDER="main"
-BRANCH_DA="master"
+BRANCH_BIDDER=""
+BRANCH_DA=""
 REFRESH_DA_DATA=true
 
 DB_HOST="localhost"
@@ -30,7 +32,7 @@ DB_PORT=5432
 DB_USER="adgear"
 DB_NAME="rtb-trader-dev"
 
-OUTPUT="${SCRIPT_DIR}/runs/$(date '+%Y%m%d-%H%M%S')"
+OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
 OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
 output_ad_requests=${OUTPUT}/ad_requests
@@ -39,13 +41,9 @@ output_artifacts=${OUTPUT}/artifacts
 output_logs=${OUTPUT}/logs
 output_setup=${OUTPUT}/setup
 
-ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
-ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
-ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
-_da_sql_preqa_creatives=${OUTPUT}/preqa_creatives.sql
-_da_sql_preqa_creatives_orig=${OUTPUT}/preqa_creatives.sql.orig
-_da_sql_ttc=${OUTPUT}/test_tvs_creatives.sql
-_da_sql_ttc_orig=${OUTPUT}/test_tvs_creatives.sql.orig
+ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}
+ROOT_BIDDER=${ROOT_BIDDER}
+
 
 ROOT_BIDDER_DOCKER_COMPOSE=${ROOT_BIDDER}/docker/bidder/docker-compose.deps.yml
 ROOT_BIDDER_CONFIG_LOCAL=${ROOT_BIDDER}/configs/bidder/default-local.yaml
@@ -74,23 +72,6 @@ function replace_where_clause(){
     else
         sed -i -E "s/(.*)((ORDER|GROUP) BY 1)/\1$where_clause\n\1\2/" "${sql_file}"
     fi
-}
-
-function setup_data_activation(){
-    # Modify preqa_creatives.sql to get affected creatives
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+vw_creatives"
-    local where_clause="WHERE vw_creatives.id IN ($creative_ids_list)"
-
-    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives_orig}
-    replace_where_clause "${ROOT_SQL_PREQA_CREATIVES}" "${where_search}" "${where_clause}"
-    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
-
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+creative_id"
-    local where_clause="WHERE creative_id IN ($creative_ids_list)"
-    cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc_orig}
-    replace_where_clause "${ROOT_SQL_TEST_TVS_CREATIVES}" "${where_search}" "${where_clause}"
 }
 
 function setup_bidder(){
@@ -296,9 +277,15 @@ function handle_exit(){
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
 do_verification
+setup_da_branch ${BRANCH_DA}
+# setup_bidder_branch ${BRANCH_BIDDER}
+
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
 setup_bidder
+
+
+exit 1
 
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data
