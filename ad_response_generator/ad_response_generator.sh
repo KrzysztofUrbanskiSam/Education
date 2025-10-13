@@ -9,14 +9,9 @@
 # Add localization parquet
 # localhost , port, DB kofigurowalne
 
-
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-printf "I ${RED}love${NC} Stack Overflow\n"
-
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_DIR=$(git rev-parse --show-toplevel)
-
+# source ${REPO_DIR}/ad_response_generator/utils/print_helper.sh
 source ${REPO_DIR}/ad_response_generator/utils/verification.sh
 source ${REPO_DIR}/ad_response_generator/utils/argument_parser.sh
 source ${REPO_DIR}/ad_response_generator/utils/repository_setuper.sh
@@ -40,6 +35,7 @@ output_ad_responses=${OUTPUT}/ad_responses
 output_artifacts=${OUTPUT}/artifacts
 output_logs=${OUTPUT}/logs
 output_setup=${OUTPUT}/setup
+output_backup=${OUTPUT}/backup
 
 ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}
 ROOT_BIDDER=${ROOT_BIDDER}
@@ -50,10 +46,6 @@ ROOT_BIDDER_CONFIG_LOCAL=${ROOT_BIDDER}/configs/bidder/default-local.yaml
 _bidder_docker_compose_orig=${OUTPUT}/docker-compose.deps.yml
 _bidder_config_local_orig=${OUTPUT}/default-local.yaml
 
-ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation
-ROOT_GENERATED_TEST_TV_PARQUET=${ROOT_GENERATED_DATA}/test_tvs_creatives/parquet/test_tvs_creatives.parquet
-ROOT_GENERATED_PREQA_CREATIVES_PARQUET=${ROOT_GENERATED_DATA}/preqa_creatives/parquet/preqa_creatives.parquet
-
 PYTHON="/home/k.urbanski/.venv/bin/python"
 PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 
@@ -61,18 +53,6 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
 TVS_PSIDS=()
-
-function replace_where_clause(){
-    sql_file=$1
-    where_search=$2
-    where_clause=$3
-
-    if grep -q "$where_search" "${sql_file}"; then
-        sed -i "s/$where_search.*/$where_clause/" "${sql_file}"
-    else
-        sed -i -E "s/(.*)((ORDER|GROUP) BY 1)/\1$where_clause\n\1\2/" "${sql_file}"
-    fi
-}
 
 function setup_bidder(){
     cp ${ROOT_BIDDER_DOCKER_COMPOSE} ${_bidder_docker_compose_orig}
@@ -189,7 +169,7 @@ function generate_test_tv_data(){
     echo "INFO: Generating Test TV data. May take 10s ..."
     rm -f ${ROOT_GENERATED_TEST_TV_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
-    ./dev-run.sh test_tvs_creatives &> /dev/null
+    ./dev-run.sh test_tvs_creatives &> ${OUTPUT}/logs/data-activation-test_tvs.txt
     if [ ! -e ${ROOT_GENERATED_TEST_TV_PARQUET} ]; then
         echo "Failed to generate test_tvs_creatives parquet. Exiting ..." && exit 1
     fi
@@ -199,7 +179,7 @@ function generate_preqa_creatives_data(){
     echo "INFO: Generating preqa creatives data. May take 15s"
     rm -f ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
-    ./dev-run.sh preqa_creatives &> /dev/null
+    ./dev-run.sh preqa_creatives &> ${OUTPUT}/logs/data-activation-preqa-creatives.txt
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
         echo "ERROR: Failed to generate preqa_creatives parquet. Exiting ..." && exit 1
     fi
@@ -222,6 +202,8 @@ function parse_parquet_files() {
 
 function populate_bidder_with_data() {
     echo "INFO: populating bidder with DA data ..."
+    echo "BIDDER data to check: ${ROOT_GENERATED_TEST_TV_PARQUET}"
+    echo $ROOT_GENERATED_TEST_TV_PARQUET $ROOT_GENERATED_PREQA_CREATIVES_PARQUET
     cp ${ROOT_GENERATED_TEST_TV_PARQUET} ${ROOT_BIDDER}/test/data-activation/data
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/preqa_creatives.parquet
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/creatives.parquet
@@ -230,8 +212,8 @@ function populate_bidder_with_data() {
 function run_bidder_services(){
     echo "INFO: starting bidder services ..."
     cd ${ROOT_BIDDER}
-    make stop-local-env &> /dev/null
-    make start-local-env &> ${OUTPUT}/logs/bidder_services.txt
+    make stop-local-env &> ${OUTPUT}/logs/bidder_services_stop.txt
+    make start-local-env &> ${OUTPUT}/logs/bidder_services_start.txt
 }
 
 function run_bidder(){
@@ -278,14 +260,11 @@ parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
 do_verification
 setup_da_branch ${BRANCH_DA}
-# setup_bidder_branch ${BRANCH_BIDDER}
+setup_bidder_branch ${BRANCH_BIDDER}
 
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
 setup_bidder
-
-
-exit 1
 
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data

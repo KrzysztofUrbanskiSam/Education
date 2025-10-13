@@ -1,5 +1,17 @@
 function do_verification() {
     local verification_success=true
+    if [[ ${#CREATIVES_IDS[@]} -eq 0 ]]; then
+        echo "ERROR: No creative IDs provided"
+        verification_success=false
+    fi
+
+    for id in "${CREATIVES_IDS[@]}"; do
+        if [[ ! $id =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Invalid creative ID: $id (must be numeric)"
+            verification_success=false
+        fi
+    done
+
     if ! command cat $ROOT_BIDDER/.git/config 2>/dev/null | grep rtb-bidder.git &>/dev/null ; then
         echo "ERROR: Set 'ROOT_BIDDER' pointing to root of rtb-bidder repository"
         echo "INFO: Please pull repo from: https://github.com/adgear/rtb-bidder"
@@ -79,5 +91,5 @@ function do_verification() {
 
     [ -e $OUTPUT ] && rm -rf ${OUTPUT}
     echo "INFO: Output directory: $OUTPUT"
-    mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup
+    mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup $output_backup
 }

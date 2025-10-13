@@ -1,11 +1,24 @@
+function verify_file_exists() {
+    if [[ ! -f "$1" ]]; then
+        echo "ERROR: Needed file does not exists: $1"
+        exit 1
+    fi
+}
+
 function pull_default_branch() {
     local repo_path="$1"
     local default_branch="$2"
     local current_branch="$3"
+    local repo_name=${1##*/}
 
     if [[ "${current_branch}" == "${default_branch}" ]]; then
-        echo "DEBUG: Pulling newest changes for ${repo_path}"
-        cd ${repo_path} && git pull origin "$default_branch" &>/dev/null
+        local pull_log="${output_logs}/pull_${repo_name}_${default_branch}.log"
+        $DEBUG && { echo "DEBUG: Pulling newest changes for ${repo_path}"; }
+        cd ${repo_path}
+        if ! command git pull origin "$default_branch" &> ${pull_log}; then
+            echo "WARNING: Failed to pull '${default_branch}' for '${repo_path}'"
+            echo "HINT: Inspect logs from ${pull_log}. Probably you have unstaged changes"
+        fi
     fi
 }
 
@@ -25,12 +38,12 @@ function checkout_on_branch() {
     default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's|^refs/remotes/origin/||')
 
     if [[ -z "${target_branch}" ]]; then
-        echo "DEBUG: Not changing branch, staying on '${current_branch}'"
+        $DEBUG && { echo "DEBUG: Not changing branch, staying on '${current_branch}'"; }
         return
     fi
 
     if [[ "$current_branch" == "$target_branch" ]]; then
-        echo "DEBUG: In '${repo_path}' already on branch '$target_branch'"
+        $DEBUG && { echo "DEBUG: In '${repo_path}' already on branch '$target_branch'"; }
         pull_default_branch $repo_path $default_branch $current_branch
         return
     fi
@@ -68,53 +81,94 @@ function locate_repository(){ # $1 = repository name
     done
 }
 
+function setup_git_repository() {
+    local repo_name="$1"
+    local repo_branch="$2"
+    local repo_url="$3"
+    local root_env_var="$4"
+
+    # Get the value of the root environment variable
+    local root_path="${!root_env_var}"
+
+    if [[ -z "${root_path}" ]]; then
+        echo "WARNING: Env variable '${root_env_var}' not set. Trying to guess ${repo_name}"
+        echo "HINT: Set '${root_env_var}' pointing to root of ${repo_name} repository to avoid search"
+        root_path=$(locate_repository "${repo_name}")
+    fi
+
+    if ! command cat $root_path/.git/config 2>/dev/null | grep "${repo_name}.git" &>/dev/null ; then
+        echo "ERROR: Set '${root_env_var}' pointing to root of ${repo_name} repository"
+        echo "INFO: Please pull repo from: ${repo_url}"
+        exit 1
+    fi
+
+    export ${root_env_var}=${repo_path}
+    eval "export ${root_env_var}=\"${root_path}\""
+    checkout_on_branch ${root_path} ${repo_branch}
+}
+
 function setup_bidder_branch() {
     local repo_branch="$1"
-    checkout_on_branch ${ROOT_DATA_ACTIVATION} ${repo_branch}
+
+    setup_git_repository "rtb-bidder" "${repo_branch}" "https://github.com/adgear/rtb-bidder" "ROOT_BIDDER"
 }
 
 function setup_da_branch() {
     local repo_branch="$1"
 
-    if [[ -z "${ROOT_DATA_ACTIVATION}" ]]; then
-        echo "WARNING: Env variable 'ROOT_DATA_ACTIVATION' not set. Trying to guess data-activation-producer-wrapper"
-        echo "HINT: Set 'ROOT_DATA_ACTIVATION' pointing to root of data-activation-producer-wrapper repository to avoid search"
-        ROOT_DATA_ACTIVATION=$(locate_repository 'data-activation-producer-wrapper')
-    fi
-
-    if ! command cat $ROOT_DATA_ACTIVATION/.git/config 2>/dev/null | grep data-activation-producer-wrapper.git &>/dev/null ; then
-        echo "ERROR: Set 'ROOT_DATA_ACTIVATION' pointing to root of data-activation-producer-wrapper repository"
-        echo "INFO: Please pull repo from: https://github.com/adgear/data-activation-producer-wrapper"
-        exit 1
-    fi
-
-    checkout_on_branch ${ROOT_DATA_ACTIVATION} ${repo_branch}
+    setup_git_repository "data-activation-producer-wrapper" "${repo_branch}" "https://github.com/adgear/data-activation-producer-wrapper" "ROOT_DATA_ACTIVATION"
 
     ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
     ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
     ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
-    _da_sql_preqa_creatives=${OUTPUT}/preqa_creatives.sql
-    _da_sql_preqa_creatives_orig=${OUTPUT}/preqa_creatives.sql.orig
-    _da_sql_ttc=${OUTPUT}/test_tvs_creatives.sql
-    _da_sql_ttc_orig=${OUTPUT}/test_tvs_creatives.sql.orig
+
+    # Rename to backup/setup
+    _da_sql_preqa_creatives=${output_backup}/preqa_creatives.sql
+    _da_sql_preqa_creatives_orig=${output_backup}/preqa_creatives.sql.orig
+    _da_sql_ttc=${output_backup}/test_tvs_creatives.sql
+    _da_sql_ttc_orig=${output_backup}/test_tvs_creatives.sql.orig
+
+    verify_file_exists ${ROOT_SQL_PREQA_CREATIVES}
+    verify_file_exists ${ROOT_SQL_TEST_TVS_CREATIVES}
+    verify_file_exists ${ROOT_SQL_CREATIVES_STRATEGY}
 }
 
 
 function setup_data_activation(){
     # Modify preqa_creatives.sql to get affected creatives
     local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+vw_creatives"
-    local where_clause="WHERE vw_creatives.id IN ($creative_ids_list)"
+    local sql_creative_limitation_for_preqa_creatives="vw_creatives.id IN ($creative_ids_list)"
+    local sql_creative_limitation_for_tvs="creative_id IN ($creative_ids_list)"
 
     cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives_orig}
-    replace_where_clause "${ROOT_SQL_PREQA_CREATIVES}" "${where_search}" "${where_clause}"
-    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
-
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+creative_id"
-    local where_clause="WHERE creative_id IN ($creative_ids_list)"
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc_orig}
 
-    replace_where_clause "${ROOT_SQL_TEST_TVS_CREATIVES}" "${where_search}" "${where_clause}"
-    exit 1
+    # Replace in preqa_creatives.sql
+    sed -i -r -e "/WHERE\s+.*/d" "${ROOT_SQL_PREQA_CREATIVES}"
+    sed -i -r -e "s|(ORDER BY.*)|WHERE ${sql_creative_limitation_for_preqa_creatives}\n\1|" "${ROOT_SQL_PREQA_CREATIVES}"
+
+    # replace in test_tvs_creatives.sql
+    sed -i -r -e "s|WHERE\s+(test_tvs.*)|WHERE ${sql_creative_limitation_for_tvs} AND \1|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+    sed -i -r -e "s|WHERE\s+creative_id.*AND\s+(.*)|WHERE ${sql_creative_limitation_for_tvs} AND \1|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+
+    # HOPE: this is just temporary substitiution
+    sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_DATA_ACTIVATION}/transformation/test_tvs_creatives.go
+
+    cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
+    cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc}
+
+    # Verify sed correctness
+    if ! command grep -q "${sql_creative_limitation_for_preqa_creatives}" "${ROOT_SQL_PREQA_CREATIVES}" ; then
+        echo "ERROR: Failed to modify ${ROOT_SQL_PREQA_CREATIVES} to limit to focused creatives"
+        exit 1
+    fi
+
+    if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
+        echo "ERROR: Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
+        exit 1
+    fi
+
+    ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation
+    ROOT_GENERATED_TEST_TV_PARQUET=${ROOT_GENERATED_DATA}/test_tvs_creatives/parquet/test_tvs_creatives.parquet
+    ROOT_GENERATED_PREQA_CREATIVES_PARQUET=${ROOT_GENERATED_DATA}/preqa_creatives/parquet/preqa_creatives.parquet
 }
