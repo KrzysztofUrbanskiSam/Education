@@ -40,12 +40,6 @@ output_backup=${OUTPUT}/backup
 ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}
 ROOT_BIDDER=${ROOT_BIDDER}
 
-
-ROOT_BIDDER_DOCKER_COMPOSE=${ROOT_BIDDER}/docker/bidder/docker-compose.deps.yml
-ROOT_BIDDER_CONFIG_LOCAL=${ROOT_BIDDER}/configs/bidder/default-local.yaml
-_bidder_docker_compose_orig=${OUTPUT}/docker-compose.deps.yml
-_bidder_config_local_orig=${OUTPUT}/default-local.yaml
-
 PYTHON="/home/k.urbanski/.venv/bin/python"
 PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 
@@ -53,15 +47,6 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
 TVS_PSIDS=()
-
-function setup_bidder(){
-    cp ${ROOT_BIDDER_DOCKER_COMPOSE} ${_bidder_docker_compose_orig}
-    cp ${ROOT_BIDDER_CONFIG_LOCAL} ${_bidder_config_local_orig}
-
-    sed -i -r -E "s|(-.*fake-ups.ym)|# \1|g" ${ROOT_BIDDER_DOCKER_COMPOSE}
-    sed -i -r -e "s|url:\s*.*unleash.*|url: http://localhost:51000|g" ${ROOT_BIDDER_CONFIG_LOCAL}
-    sed -i '/^familyhub:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
-}
 
 # Conisder making it as a dictionary
 function get_creaitve_pid(){

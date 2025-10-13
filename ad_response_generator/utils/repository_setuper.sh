@@ -107,10 +107,52 @@ function setup_git_repository() {
     checkout_on_branch ${root_path} ${repo_branch}
 }
 
+function setup_bidder_parquet() {
+    cd ${ROOT_BIDDER}
+
+    # flights.parquet is just and example of file that should be present after running'make parquet' command
+    if [ ! -e "${ROOT_BIDDER}/test/data-activation/data/flights.parquet" ]; then
+        echo "INFO: Populating bidder with 'make parquet' command"
+        make parquet &> ${output_logs}/bidder_make_parquet.log
+        if [ ! -e "${ROOT_BIDDER}/test/data-activation/data/flights.parquet" ]; then
+            echo "ERROR: Populating bidder with 'make parquet' command"
+            echo "INFO: Inspect log ${output_logs}/bidder_make_parquet.log"
+            exit 1
+        fi
+    fi
+}
+
+function setup_bidder_geoip(){
+    geopip_files=("/usr/share/GeoIP/DE-CountryISO-DB.mmdb" "/usr/share/GeoIP/GeoIP2-Connection-Type.mmdb" "/usr/share/GeoIP/GeoIP2-ISP.mmdb")
+    sudo cp -f ${ROOT_BIDDER}/test/data-activation/data/GeoIP/* /usr/share/GeoIP/
+}
+
+function setup_bidder(){
+    cd ${ROOT_BIDDER}
+
+    setup_bidder_parquet
+    # setup_bidder_geoip
+
+    cp ${ROOT_BIDDER_DOCKER_COMPOSE} ${_bidder_docker_compose_orig}
+    cp ${ROOT_BIDDER_CONFIG_LOCAL} ${_bidder_config_local_orig}
+
+    sed -i -r -E "s|(-.*fake-ups.ym)|# \1|g" ${ROOT_BIDDER_DOCKER_COMPOSE}
+    sed -i -r -e "s|url:\s*.*unleash.*|url: http://localhost:51000|g" ${ROOT_BIDDER_CONFIG_LOCAL}
+    sed -i '/^familyhub:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
+}
+
 function setup_bidder_branch() {
     local repo_branch="$1"
 
     setup_git_repository "rtb-bidder" "${repo_branch}" "https://github.com/adgear/rtb-bidder" "ROOT_BIDDER"
+
+    ROOT_BIDDER_DOCKER_COMPOSE=${ROOT_BIDDER}/docker/bidder/docker-compose.deps.yml
+    ROOT_BIDDER_CONFIG_LOCAL=${ROOT_BIDDER}/configs/bidder/default-local.yaml
+    verify_file_exists ${ROOT_BIDDER_DOCKER_COMPOSE}
+    verify_file_exists ${ROOT_BIDDER_CONFIG_LOCAL}
+
+    _bidder_docker_compose_orig=${OUTPUT}/docker-compose.deps.yml
+    _bidder_config_local_orig=${OUTPUT}/default-local.yaml
 }
 
 function setup_da_branch() {
@@ -121,16 +163,15 @@ function setup_da_branch() {
     ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
     ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
     ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
+    verify_file_exists ${ROOT_SQL_PREQA_CREATIVES}
+    verify_file_exists ${ROOT_SQL_TEST_TVS_CREATIVES}
+    verify_file_exists ${ROOT_SQL_CREATIVES_STRATEGY}
 
     # Rename to backup/setup
     _da_sql_preqa_creatives=${output_backup}/preqa_creatives.sql
     _da_sql_preqa_creatives_orig=${output_backup}/preqa_creatives.sql.orig
     _da_sql_ttc=${output_backup}/test_tvs_creatives.sql
     _da_sql_ttc_orig=${output_backup}/test_tvs_creatives.sql.orig
-
-    verify_file_exists ${ROOT_SQL_PREQA_CREATIVES}
-    verify_file_exists ${ROOT_SQL_TEST_TVS_CREATIVES}
-    verify_file_exists ${ROOT_SQL_CREATIVES_STRATEGY}
 }
 
 
