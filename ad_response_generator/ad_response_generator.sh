@@ -134,7 +134,7 @@ function setup_test_tvs() {
         echo "INFO: One of provided creative is not ready. Probably needs to be transcoded"
         echo "HINT: To perform transcoding, run rtb-trader and additionally in separate terminal run:"
         echo "HINT: QUEUE=* rails resque:work"
-        echo "HINT: Open your creative, save again, refresh preview page, and notice 'green dot' indicating creative is ready"
+        echo "HINT: Open your creative, save again, refresh preview page, and notice 'green dot' indicating creative is ready."
     fi
 
     if [[ ${#TVS_PSIDS[@]} == 0 ]]; then
