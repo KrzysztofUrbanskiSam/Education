@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 // import TvModelsMultiselect from "./InputComponents/TvModelsMultiselect";
 import OutputSection from "./outputComponents/OutputSection";
-import PatternSection from "./outputComponents/PatternSection";
+import TestSection from "./outputComponents/TestSection";
 import BranchNameInput from "./InputComponents/BranchNameInput";
 import CreativeIdsInput from "./InputComponents/CreativeIdsInput";
 import LanguageSelect from "./InputComponents/LanguageSelect";
@@ -17,7 +17,7 @@ function App() {
   const [bidderBranchName, setBidderBranchName] = useState("main");
   const [creativeType, setCreativeType] = useState("");
   const [language, setLanguage] = useState("en");
-  const [testModeVisible, setTestModeVisible] = useState(true);
+  const [testModeVisible, setTestModeVisible] = useState(false);
   // const [tvModels, setTvModels] = useState([]);
 
   useEffect(() => {}, [testModeVisible]);
@@ -44,7 +44,7 @@ function App() {
                 : "0 0 calc(100% - 15px)",
             }}
           >
-            <div className="action-section">
+            <div className="input-section">
               <CreativeIdsInput
                 creativeIds={creativeIds}
                 setCreativeIds={setCreativeIds}
@@ -77,7 +77,7 @@ function App() {
             className="test-section"
             style={{ display: testModeVisible ? "flex" : "none" }}
           >
-            <div className="action-section">
+            <div className="input-section">
               <CreativeTypeSelect
                 creativeType={creativeType}
                 setCreativeType={setCreativeType}
@@ -85,7 +85,7 @@ function App() {
             </div>
 
             <div className="present-section">
-              <PatternSection creativeType={creativeType} />
+              <TestSection creativeType={creativeType} />
             </div>
           </div>
         </div>
