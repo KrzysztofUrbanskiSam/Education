@@ -1,8 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
-// const { spawn } = require("child_process");
-
 const fs = require("fs");
 const path = require("path");
 
@@ -55,48 +53,6 @@ app.post("/script", (req, res) => {
   );
 });
 
-// app.post("/script", (req, res) => {
-//   res.writeHead(200, {
-//     "Content-Type": "text/event-stream",
-//     "Cache-Control": "no-cache",
-//     Connection: "keep-alive",
-//   });
-//   const body = req.body;
-//   let params = "";
-//   for (const key in body) {
-//     params += `--${key} `;
-//     if (Array.isArray(body[key])) {
-//       body[key].forEach((el) => {
-//         params += `${el} `;
-//       });
-//     }
-//     if (typeof body[key] === "string" || body[key] instanceof String) {
-//       body[key].split(",").forEach((el) => {
-//         params += `${el} `;
-//       });
-//     }
-//   }
-
-//   console.log("11111111111111111111");
-//   console.log(params.split("--"));
-
-//   const proc = spawn(`bash ../ad_response_generator.sh ${params.split()}`);
-//   console.log(proc);
-
-//   // proc.stdout.on("data", (data) => {
-//   //   res.write(`data: ${data.toString()}\n\n}`);
-//   // });
-
-//   // proc.stderr.on("data", (data) => {
-//   //   res.write(`data: []ERR ${data.toString()}\n\n}`);
-//   // });
-
-//   // proc.on("close", (code) => {
-//   //   res.write(`data: Process end with code ${code}`);
-//   //   res.end();
-//   // });
-// });
-
 const readMockFile = (creativeType) => {
   return new Promise((resolve, reject) => {
     const filePath = path.resolve(
@@ -118,52 +74,35 @@ const readMockFile = (creativeType) => {
   });
 };
 
-const readAdResponseFile = (pathName) => {
-  return new Promise((resolve, reject) => {
-    const filePath = path.resolve(__dirname, "../", `${pathName}`);
-    fs.readFile(filePath, "utf8", (error, data) => {
-      if (error) {
-        reject(
-          new Error(
-            `Failed to read ad response file ${pathName}: ${error.message}`
-          )
-        );
-      } else {
-        resolve(data);
-      }
-    });
-  });
+const validateResponseData = (data) => {
+  const jsonData = JSON.parse(data);
+  const valid = validateGamingHubImmersionContentPlus(jsonData);
+  if (!valid) {
+    const errors = validateGamingHubImmersionContentPlus.errors;
+    throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
+  }
+  return jsonData;
 };
 
-const validateResponseData = (data) => {
-  const valid = validateGamingHubImmersionContentPlus(data);
+const confirmGeneratedData = (data) => {
+  const jsonData = JSON.parse(data);
+  const valid = validateGamingHubImmersionContentPlus(jsonData);
   if (!valid) {
-    return validateGamingHubImmersionContentPlus.errors;
+    const errors = validateGamingHubImmersionContentPlus.errors;
+    throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
   }
   return valid;
 };
 
-app.post("/open_ad_reponse", async (req, res) => {
-  try {
-    const pathName = req.body;
-    const fileData = await readAdResponseFile(pathName);
-
-    return res.status(200).json(JSON.parse(fileData));
-  } catch (error) {
-    console.error("Upload endpoint error:", error.message);
-
-    return res.status(500).json({
-      error: "Upload failed",
-      message: error.message,
-    });
-  }
-});
-
-app.post("/upload_mock", async (req, res) => {
+app.post("/upload", async (req, res) => {
   try {
     const creativeType = req.body;
+
     const fileData = await readMockFile(creativeType);
-    return res.status(200).json(fileData);
+
+    const validatedData = validateResponseData(fileData);
+
+    return res.status(200).json(validatedData);
   } catch (error) {
     console.error("Upload endpoint error:", error.message);
 
@@ -176,9 +115,11 @@ app.post("/upload_mock", async (req, res) => {
 
 app.post("/validate", async (req, res) => {
   try {
-    const addResponsePath = req.body;
-    const fileData = await readAdResponseFile(addResponsePath);
-    const validatedData = validateResponseData(JSON.parse(fileData));
+    const creativeType = req.body;
+
+    const fileData = await readMockFile(creativeType);
+
+    const validatedData = confirmGeneratedData(fileData);
 
     return res.status(200).json(validatedData);
   } catch (error) {

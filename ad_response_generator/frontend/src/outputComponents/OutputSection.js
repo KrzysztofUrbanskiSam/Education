@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import {
-  runScript,
-  openAdResponse,
-  validateGeneratedResponse,
-} from "./scriptService";
+import { runScript } from "./scriptService";
 import Loader from "../Loader";
 
 function OutputSection({
@@ -16,40 +12,12 @@ function OutputSection({
 }) {
   const [output, setOutput] = useState("");
   const [isAdResponseGenerating, setIsAdResponseGenerating] = useState(false);
-  const [fileRenderedPath, setFileRenderedPath] = useState("");
-  const [adRespnse, setAdResponse] = useState("");
-  const [validateResult, setValidateResult] = useState("");
-
-  const parseResult = (result) => {
-    const start = result.indexOf("json") + 4;
-    const end = start - 45;
-    const pathName = result.substring(start, end);
-    setFileRenderedPath(pathName);
-  };
-
-  const verifyAdResponse = async () => {
-    const result = await validateGeneratedResponse(fileRenderedPath);
-    setValidateResult(result);
-    setAdResponse("");
-  };
-
-  const handleShowAdResponse = async () => {
-    const adRespnseContent = await openAdResponse(fileRenderedPath);
-    setAdResponse(adRespnseContent);
-    setValidateResult("");
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(JSON.stringify(adRespnse, null, 2));
-  };
 
   const handleRunScript = async () => {
     let result = "";
-    setOutput("");
-    setFileRenderedPath("");
-    setValidateResult("");
     if (creativeIds) {
       setIsAdResponseGenerating(true);
+      setOutput("");
 
       result = await runScript(
         creativeIds,
@@ -58,11 +26,9 @@ function OutputSection({
         language,
         tvModels
       );
-      parseResult(result);
-      setOutput(result);
     }
-
     setIsAdResponseGenerating(false);
+    setOutput(result);
   };
 
   return (
@@ -74,41 +40,9 @@ function OutputSection({
           <pre>Generating for: {creativeIds}</pre>
         </div>
       ) : (
-        <pre>{output || "Enter creative id first"}</pre>
-      )}
-      {!!fileRenderedPath && (
-        <div>
-          <button onClick={handleShowAdResponse}>
-            Pokaż add response: {fileRenderedPath}
-          </button>
-
-          {(adRespnse || validateResult) && (
-            <button
-              className={`validate-button ${
-                validateResult === ""
-                  ? ""
-                  : validateResult === true
-                  ? "valid"
-                  : "invalid"
-              }`}
-              onClick={verifyAdResponse}
-            >
-              Zweryfikuj ad response
-            </button>
-          )}
-          {(adRespnse || (adRespnse && validateResult)) && (
-            <button onClick={handleCopy}>Copy add response to clipboard</button>
-          )}
-          <pre>
-            {validateResult === true
-              ? "Add response is all right"
-              : validateResult !== ""
-              ? JSON.stringify(validateResult, null, 2)
-              : adRespnse
-              ? JSON.stringify(adRespnse, null, 2)
-              : "Click"}
-          </pre>
-        </div>
+        <pre>
+          {output || "Enter creative id first"}
+        </pre>
       )}
     </div>
   );

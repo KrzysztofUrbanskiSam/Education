@@ -11,7 +11,7 @@
 /tmp/
 
 # Specific for 'Ad response generator'
-ad_response_generator/runs/
+runs/
 
 # Python
 __pycache__/
