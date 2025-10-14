@@ -21,10 +21,10 @@ function PatternSection({ creativeType, output }) {
   return (
     <div className="pattern-section">
       <button name="openMock" onClick={verifyOutput}>
-        Sprawdź ad response
+        Verify ad response
       </button>
       <button name="openMock" onClick={handleOpenMock}>
-        Otwórz wzór
+        Open ad response pattern
       </button>
       <pre>
         {pattern

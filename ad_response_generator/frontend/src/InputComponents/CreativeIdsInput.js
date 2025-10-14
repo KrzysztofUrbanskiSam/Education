@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 const CreativeIdsInput = ({ creativeIds, setCreativeIds }) => {
   return (
     <div className="creativeids-input-section">
-      <h4>Enter creative ids divided by coma</h4>
+      <h4>Enter creative ids divided by comma</h4>
       <input
         onChange={(e) => {
           setCreativeIds(e.target.value.replace(/[^0-9,]/g, ""));

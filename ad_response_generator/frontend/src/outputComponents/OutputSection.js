@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
 import {
@@ -10,53 +10,113 @@ import Loader from "../Loader";
 
 function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, tvModels }) {
   const [output, setOutput] = useState("");
+  const [outputVisible, setOutputVisible] = useState(true);
   const [isAdResponseGenerating, setIsAdResponseGenerating] = useState(false);
   const [fileRenderedPath, setFileRenderedPath] = useState([]);
-  const [adRespnse, setAdResponse] = useState("");
-  const [validateResult, setValidateResult] = useState("");
-  console.log("11111111111111111111111111111111111111111111111");
-  console.log(fileRenderedPath);
+  const [adResponse, setAdResponse] = useState({});
+  const [validateResult, setValidateResult] = useState({});
+  const [contentVisible, setContentVisible] = useState({});
+  // useEffect(() => {}, [contentVisible]);
 
-  let pathNames = [];
+  const toggleOutoutSectionVisible = () => {
+    setOutputVisible(previous => 
+      !previous,
+      );
+  };
+
+  const toggleAdResponseVisible = (path) => {
+    setContentVisible(previous => ({
+      ...previous,
+      [path]: !previous[path]
+    }));
+  };
+
   const parseResult = (result) => {
     const start = result.indexOf("json");
     if (start === -1) {
       return;
     }
-    const end = start - 10;
-    pathNames.push(result.substring(start + 4, end));
-
-    parseResult(result.substring(start + end));
-    setFileRenderedPath.push(result.substring(start + 4, end));
-  };
-  // const parseResult = (result) => {
-  //   const start = result.indexOf("json") + 4;
-  //   const end = start - 45;
-  //   const pathName = result.substring(start, end);
-  //   setFileRenderedPath(pathName);
-  // };
-
-  const verifyAdResponse = async () => {
-    const result = await validateGeneratedResponse(fileRenderedPath[0]);
-    setValidateResult(result);
-    setAdResponse("");
+    const end = start - 43;
+    const newPath = result.substring(start + 4, end);
+    setFileRenderedPath(prevState => [...prevState, newPath]);
+    parseResult(result.substring(start + 4));
   };
 
-  const handleShowAdResponse = async () => {
-    const adRespnseContent = await openAdResponse(fileRenderedPath[0]);
-    setAdResponse(adRespnseContent);
-    setValidateResult("");
+  const verifyAdResponse = async (path) => {
+    const result = await validateGeneratedResponse(path);
+
+    setValidateResult(previous => ({
+      ...previous,
+      [path]: result
+    }));
+    setAdResponse(previous => ({
+      ...previous,
+      [path]: ""
+    }));
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(JSON.stringify(adRespnse, null, 2));
+  const handleShowAdResponse = async (path) => {
+    setAdResponse(previous => ({
+      ...previous,
+      [path]: ""
+    }));
+    const adResponseContent = await openAdResponse(path);
+    setAdResponse(previous => ({
+      ...previous,
+      [path]: adResponseContent
+    }));
+    setContentVisible(previous => ({
+      ...previous,
+      [path]: true
+    }));
+    setValidateResult(previous => ({
+      ...previous,
+      [path]: ""
+    }));
+  };
+
+  const verifyAdResponses = async () => {
+    fileRenderedPath.forEach(async path => {
+      const result = await validateGeneratedResponse(path);
+
+      setValidateResult(previous => ({
+        ...previous,
+        [path]: result
+      }));
+      setAdResponse(previous => ({
+        ...previous,
+        [path]: ""
+      }));
+    });
+  };
+
+  const handleShowAdResponses = async () => {
+    setAdResponse({});
+    fileRenderedPath.forEach(async path => {
+      const adResponseContent = await openAdResponse(path);
+      setContentVisible(previous => ({
+        ...previous,
+        [path]: true
+      }));
+      setAdResponse(previous => ({
+        ...previous,
+        [path]: adResponseContent
+      }));
+      setValidateResult({});
+    });
+  };
+
+  const handleCopy = (path) => {
+    navigator.clipboard.writeText(JSON.stringify(adResponse[path], null, 2));
   };
 
   const handleRunScript = async () => {
     let result = "";
+    setOutput("");
+    setFileRenderedPath([]);
+    setValidateResult({});
     if (creativeIds) {
       setIsAdResponseGenerating(true);
-      setOutput("");
 
       result = await runScript(
         creativeIds,
@@ -65,57 +125,105 @@ function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, 
         language,
         tvModels
       );
+      parseResult(result);
+      setOutput(result);
     }
     setIsAdResponseGenerating(false);
-    setOutput(result);
   };
 
   return (
-    <div className="output-section">
-      <button onClick={handleRunScript}>Wygeneruj add response</button>
-      {isAdResponseGenerating ? (
-        <div>
-          <Loader />
-          <pre>Generating for: {creativeIds}</pre>
+    <>
+      <div className="output-section">
+        <div className="output-action-section">
+          <button onClick={handleRunScript}>Generate ad response</button>
+          <button onClick={toggleOutoutSectionVisible}>{outputVisible ? 'Show' : 'Hide'}</button>
         </div>
-      ) : (
-        <pre>{output || "Enter creative id first"}</pre>
-      )}
-      {fileRenderedPath.length && (
-        <div>
-          <button onClick={handleShowAdResponse}>
-            Pokaż add response: {fileRenderedPath}
-          </button>
-
-          {(adRespnse || validateResult) && (
-            <button
-              className={`validate-button ${
-                validateResult === ""
-                  ? ""
-                  : validateResult === true
-                  ? "valid"
-                  : "invalid"
-              }`}
-              onClick={verifyAdResponse}
-            >
-              Zweryfikuj ad response
+        {isAdResponseGenerating ? (
+          <div className="output-action-section">
+            <Loader />
+            <pre>Ad response is generating for: {creativeIds} ids</pre>
+          </div>
+        ) : outputVisible ? (
+           <pre>{output || "Enter creative id first"}</pre>
+        ) : <></> }
+      </div>
+      {fileRenderedPath && fileRenderedPath.length ? (
+        <>
+          <div className="global-action-section">
+            <button onClick={handleShowAdResponses}>
+              Show all ad responses
             </button>
-          )}
-          {(adRespnse || (adRespnse && validateResult)) && (
-            <button onClick={handleCopy}>Copy add response to clipboard</button>
-          )}
-          <pre>
-            {validateResult === true
-              ? "Add response is all right"
-              : validateResult !== ""
-              ? JSON.stringify(validateResult, null, 2)
-              : adRespnse
-              ? JSON.stringify(adRespnse, null, 2)
-              : "Click"}
-          </pre>
-        </div>
-      )}
-    </div>
+            {(Object.keys(adResponse).length) ? (
+              <button onClick={verifyAdResponses}>
+                Verify all ad responses
+              </button>
+            ) : (<></>)}
+          </div>
+          {Object.keys(adResponse).length ? (
+            <div className="responses-section">
+              {Object.keys(adResponse).length && fileRenderedPath.map(path => (
+                <div key={path} className="response-section">
+                  {(adResponse[path] || validateResult[path]) && (
+                    <button
+                      className={`validate-button ${
+                        !validateResult[path]
+                          ? ""
+                          : validateResult[path] === true
+                            ? "valid"
+                            : "invalid"
+                      }`}
+                      onClick={() => handleShowAdResponse(path)}
+                    >
+                      Show ad response for: {path.substring(path.indexOf('json')-1, 36)} id
+                    </button>
+                  )}
+                  {(adResponse[path] || validateResult[path]) && (
+                    <button
+                      className={`validate-button ${
+                        !validateResult[path]
+                          ? ""
+                          : validateResult[path] === true
+                            ? "valid"
+                            : "invalid"
+                      }`}
+                      onClick={() => verifyAdResponse(path)}
+                    >
+                      Verify ad response
+                    </button>
+                  )}
+                  {adResponse[path] && (
+                    <button onClick={() => handleCopy(path)}>Copy to clipboard</button>
+                  )}
+                  {(adResponse[path] || validateResult[path]) && (
+                    <button onClick={() => toggleAdResponseVisible(path)}>
+                      {contentVisible[path] ? "Hide" : "Show"}
+                    </button>
+                  )}
+                  {contentVisible[path] && (
+                    <pre>
+                      {validateResult[path] === true
+                        ? "Add response is all right"
+                        : validateResult[path]
+                          ? JSON.stringify(validateResult[path], null, 2)
+                          : adResponse[path] ? (
+                            <div>
+                              <span style={{ fontWeight: 'bold', fontSize: '28px' }}>
+                                {path}
+                              </span>
+                              <br />
+                              {JSON.stringify(adResponse[path], null, 2)}
+                            </div>
+                          ) : "Click"
+                      }
+                    </pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : <></>}
+        </>
+      ) : <></>}
+    </>
   );
 }
 
