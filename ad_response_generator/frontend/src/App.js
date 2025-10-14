@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 // import TvModelsMultiselect from "./InputComponents/TvModelsMultiselect";
 import OutputSection from "./outputComponents/OutputSection";
-import TestSection from "./outputComponents/TestSection";
+import PatternSection from "./outputComponents/PatternSection";
 import BranchNameInput from "./InputComponents/BranchNameInput";
 import CreativeIdsInput from "./InputComponents/CreativeIdsInput";
 import LanguageSelect from "./InputComponents/LanguageSelect";
@@ -17,7 +17,7 @@ function App() {
   const [bidderBranchName, setBidderBranchName] = useState("main");
   const [creativeType, setCreativeType] = useState("");
   const [language, setLanguage] = useState("en");
-  const [testModeVisible, setTestModeVisible] = useState(false);
+  const [testModeVisible, setTestModeVisible] = useState(true);
   // const [tvModels, setTvModels] = useState([]);
 
   useEffect(() => {}, [testModeVisible]);
@@ -52,13 +52,13 @@ function App() {
               <LanguageSelect language={language} setLanguage={setLanguage} />
               <BranchNameInput
                 label="Enter data-activation branch name"
-                value={daBranchName}
-                onChange={setDaBranchName}
+                value={bidderBranchName}
+                onChange={setBidderBranchName}
               />
               <BranchNameInput
                 label="Enter rtb-bidder branch name"
-                value={bidderBranchName}
-                onChange={setBidderBranchName}
+                value={daBranchName}
+                onChange={setDaBranchName}
               />
             </div>
             <div className="present-section">
@@ -85,7 +85,7 @@ function App() {
             </div>
 
             <div className="present-section">
-              <TestSection creativeType={creativeType} />
+              <PatternSection creativeType={creativeType} />
             </div>
           </div>
         </div>

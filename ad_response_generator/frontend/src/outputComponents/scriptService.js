@@ -31,7 +31,7 @@ const runScript = async (
 const openMock = async (mockName) => {
   if (mockName === "") mockName = "creative type is not proper";
   try {
-    const res = await fetch("http://localhost:5000/upload_mock", {
+    const res = await fetch("http://localhost:5000/upload", {
       method: "POST",
       headers: {
         "Content-Type": "text/plain",
@@ -47,34 +47,15 @@ const openMock = async (mockName) => {
   }
 };
 
-const openAdResponse = async (pathName) => {
-  if (pathName === "") pathName = "path name is not proper";
-  try {
-    const res = await fetch("http://localhost:5000/open_ad_reponse", {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: pathName,
-    });
-
-    const jsonData = await res.json();
-    return jsonData;
-  } catch (err) {
-    console.error("Fetch error:", err);
-    return `Błąd: ${err.message}`;
-  }
-};
-
-const validateGeneratedResponse = async (pathName) => {
-  if (pathName === "") pathName = "path name is not proper";
+const validateGeneratedResponse = async (mockName) => {
+  if (mockName === "") mockName = "creative type is not proper";
   try {
     const res = await fetch("http://localhost:5000/validate", {
       method: "POST",
       headers: {
         "Content-Type": "text/plain",
       },
-      body: pathName,
+      body: mockName,
     });
 
     const jsonData = await res.json();
@@ -85,4 +66,4 @@ const validateGeneratedResponse = async (pathName) => {
   }
 };
 
-export { runScript, openMock, validateGeneratedResponse, openAdResponse };
+export { runScript, openMock, validateGeneratedResponse };

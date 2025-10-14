@@ -12,7 +12,7 @@ function parse_arguments() {
                 ;;
             --branch-bidder)
                 shift; BRANCH_BIDDER="$1"; shift ;;
-            --branch-data-activation)
+            --branch-data-activation | --branch-da)
                 shift; BRANCH_DA="$1"; shift ;;
             --db-*)
                 local param="${1#--db-}"
@@ -21,6 +21,8 @@ function parse_arguments() {
                 shift; AD_LANGUAGE="$1"; shift ;;
             --no-da-refresh)
                 REFRESH_DA_DATA=false; shift ;;
+            --ui-mode)
+                UI_MODE=true; shift ;;
             --debug)
                 DEBUG=true; shift ;;
             --output)

@@ -54,11 +54,9 @@ function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, 
 
   const handleRunScript = async () => {
     let result = "";
-    setOutput("");
-    setFileRenderedPath("");
-    setValidateResult("");
     if (creativeIds) {
       setIsAdResponseGenerating(true);
+      setOutput("");
 
       result = await runScript(
         creativeIds,
@@ -67,11 +65,9 @@ function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, 
         language,
         tvModels
       );
-      parseResult(result);
-      setOutput(result);
     }
-
     setIsAdResponseGenerating(false);
+    setOutput(result);
   };
 
   return (
