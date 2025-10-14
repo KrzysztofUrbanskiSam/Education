@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
+
 import {
   runScript,
   openAdResponse,
@@ -7,13 +8,7 @@ import {
 } from "./scriptService";
 import Loader from "../Loader";
 
-function OutputSection({
-  creativeIds,
-  daBranchName,
-  bidderBranchName,
-  language,
-  tvModels,
-}) {
+function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, tvModels }) {
   const [output, setOutput] = useState("");
   const [isAdResponseGenerating, setIsAdResponseGenerating] = useState(false);
   const [fileRenderedPath, setFileRenderedPath] = useState([]);
@@ -59,11 +54,9 @@ function OutputSection({
 
   const handleRunScript = async () => {
     let result = "";
-    setOutput("");
-    setFileRenderedPath("");
-    setValidateResult("");
     if (creativeIds) {
       setIsAdResponseGenerating(true);
+      setOutput("");
 
       result = await runScript(
         creativeIds,
@@ -72,11 +65,9 @@ function OutputSection({
         language,
         tvModels
       );
-      parseResult(result);
-      setOutput(result);
     }
-
     setIsAdResponseGenerating(false);
+    setOutput(result);
   };
 
   return (
