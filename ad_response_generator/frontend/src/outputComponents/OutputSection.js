@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 
 import {
@@ -8,7 +8,13 @@ import {
 } from "./scriptService";
 import Loader from "../Loader";
 
-function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, tvModels }) {
+function OutputSection({
+  creativeIds,
+  daBranchName,
+  bidderBranchName,
+  language,
+  tvModels,
+}) {
   const [output, setOutput] = useState("");
   const [outputVisible, setOutputVisible] = useState(true);
   const [isAdResponseGenerating, setIsAdResponseGenerating] = useState(false);
@@ -16,91 +22,84 @@ function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, 
   const [adResponse, setAdResponse] = useState({});
   const [validateResult, setValidateResult] = useState({});
   const [contentVisible, setContentVisible] = useState({});
-  // useEffect(() => {}, [contentVisible]);
 
   const toggleOutoutSectionVisible = () => {
-    setOutputVisible(previous => 
-      !previous,
-      );
+    setOutputVisible((previous) => !previous);
   };
 
   const toggleAdResponseVisible = (path) => {
-    setContentVisible(previous => ({
+    setContentVisible((previous) => ({
       ...previous,
-      [path]: !previous[path]
+      [path]: !previous[path],
     }));
   };
 
   const parseResult = (result) => {
-    const start = result.indexOf("json");
-    if (start === -1) {
-      return;
-    }
-    const end = start - 43;
-    const newPath = result.substring(start + 4, end);
-    setFileRenderedPath(prevState => [...prevState, newPath]);
-    parseResult(result.substring(start + 4));
+    const regex = /Ad response:\s*(.*?\.json)/g;
+    const matches = [...result.matchAll(regex)];
+    const filePaths = matches.map((match) => match[1]);
+    setFileRenderedPath(filePaths);
   };
 
   const verifyAdResponse = async (path) => {
     const result = await validateGeneratedResponse(path);
 
-    setValidateResult(previous => ({
+    setValidateResult((previous) => ({
       ...previous,
-      [path]: result
+      [path]: result,
     }));
-    setAdResponse(previous => ({
+    setAdResponse((previous) => ({
       ...previous,
-      [path]: ""
+      [path]: "",
     }));
   };
 
   const handleShowAdResponse = async (path) => {
-    setAdResponse(previous => ({
+    setAdResponse((previous) => ({
       ...previous,
-      [path]: ""
+      [path]: "",
     }));
     const adResponseContent = await openAdResponse(path);
-    setAdResponse(previous => ({
+    setAdResponse((previous) => ({
       ...previous,
-      [path]: adResponseContent
+      [path]: adResponseContent,
     }));
-    setContentVisible(previous => ({
+    setContentVisible((previous) => ({
       ...previous,
-      [path]: true
+      [path]: true,
     }));
-    setValidateResult(previous => ({
+    setValidateResult((previous) => ({
       ...previous,
-      [path]: ""
+      [path]: "",
     }));
   };
 
   const verifyAdResponses = async () => {
-    fileRenderedPath.forEach(async path => {
+    fileRenderedPath.forEach(async (path) => {
       const result = await validateGeneratedResponse(path);
 
-      setValidateResult(previous => ({
+      setValidateResult((previous) => ({
         ...previous,
-        [path]: result
+        [path]: result,
       }));
-      setAdResponse(previous => ({
+      setAdResponse((previous) => ({
         ...previous,
-        [path]: ""
+        [path]: "",
       }));
     });
   };
 
   const handleShowAdResponses = async () => {
     setAdResponse({});
-    fileRenderedPath.forEach(async path => {
+    fileRenderedPath.forEach(async (path) => {
       const adResponseContent = await openAdResponse(path);
-      setContentVisible(previous => ({
+      setContentVisible((previous) => ({
         ...previous,
-        [path]: true
+        [path]: true,
       }));
-      setAdResponse(previous => ({
+      setAdResponse((previous) => ({
         ...previous,
-        [path]: adResponseContent
+        [path]: adResponseContent,
       }));
       setValidateResult({});
     });
@@ -136,16 +135,20 @@ function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, 
       <div className="output-section">
         <div className="output-action-section">
           <button onClick={handleRunScript}>Generate ad response</button>
-          <button onClick={toggleOutoutSectionVisible}>{outputVisible ? 'Show' : 'Hide'}</button>
+          <button onClick={toggleOutoutSectionVisible}>
+            {outputVisible ? "Show" : "Hide"}
+          </button>
         </div>
         {isAdResponseGenerating ? (
           <div className="output-action-section">
             <Loader />
-            <pre>Ad response is generating for: {creativeIds} ids</pre>
+            <pre>Generating ad response(s) for: {creativeIds} id(s)</pre>
           </div>
         ) : outputVisible ? (
-           <pre>{output || "Enter creative id first"}</pre>
-        ) : <></> }
+          <pre>{output || "Enter creative id first"}</pre>
+        ) : (
+          <></>
+        )}
       </div>
       {fileRenderedPath && fileRenderedPath.length ? (
         <>
@@ -153,76 +156,89 @@ function OutputSection({ creativeIds, daBranchName, bidderBranchName, language, 
             <button onClick={handleShowAdResponses}>
               Show all ad responses
             </button>
-            {(Object.keys(adResponse).length) ? (
+            {Object.keys(adResponse).length ? (
               <button onClick={verifyAdResponses}>
                 Verify all ad responses
               </button>
-            ) : (<></>)}
+            ) : (
+              <></>
+            )}
           </div>
           {Object.keys(adResponse).length ? (
             <div className="responses-section">
-              {Object.keys(adResponse).length && fileRenderedPath.map(path => (
-                <div key={path} className="response-section">
-                  {(adResponse[path] || validateResult[path]) && (
-                    <button
-                      className={`validate-button ${
-                        !validateResult[path]
-                          ? ""
-                          : validateResult[path] === true
+              {Object.keys(adResponse).length &&
+                fileRenderedPath.map((path) => (
+                  <div key={path} className="response-section">
+                    {(adResponse[path] || validateResult[path]) && (
+                      <button
+                        className={`validate-button ${
+                          !validateResult[path]
+                            ? ""
+                            : validateResult[path] === true
                             ? "valid"
                             : "invalid"
-                      }`}
-                      onClick={() => handleShowAdResponse(path)}
-                    >
-                      Show ad response for: {path.substring(path.indexOf('json')-1, 36)} id
-                    </button>
-                  )}
-                  {(adResponse[path] || validateResult[path]) && (
-                    <button
-                      className={`validate-button ${
-                        !validateResult[path]
-                          ? ""
-                          : validateResult[path] === true
+                        }`}
+                        onClick={() => handleShowAdResponse(path)}
+                      >
+                        Show ad response for:{" "}
+                        {path.match(/\/([^/]+)\.json$/)[1]} id
+                      </button>
+                    )}
+                    {(adResponse[path] || validateResult[path]) && (
+                      <button
+                        className={`validate-button ${
+                          !validateResult[path]
+                            ? ""
+                            : validateResult[path] === true
                             ? "valid"
                             : "invalid"
-                      }`}
-                      onClick={() => verifyAdResponse(path)}
-                    >
-                      Verify ad response
-                    </button>
-                  )}
-                  {adResponse[path] && (
-                    <button onClick={() => handleCopy(path)}>Copy to clipboard</button>
-                  )}
-                  {(adResponse[path] || validateResult[path]) && (
-                    <button onClick={() => toggleAdResponseVisible(path)}>
-                      {contentVisible[path] ? "Hide" : "Show"}
-                    </button>
-                  )}
-                  {contentVisible[path] && (
-                    <pre>
-                      {validateResult[path] === true
-                        ? "Add response is all right"
-                        : validateResult[path]
-                          ? JSON.stringify(validateResult[path], null, 2)
-                          : adResponse[path] ? (
-                            <div>
-                              <span style={{ fontWeight: 'bold', fontSize: '28px' }}>
-                                {path}
-                              </span>
-                              <br />
-                              {JSON.stringify(adResponse[path], null, 2)}
-                            </div>
-                          ) : "Click"
-                      }
-                    </pre>
-                  )}
-                </div>
-              ))}
+                        }`}
+                        onClick={() => verifyAdResponse(path)}
+                      >
+                        Verify ad response
+                      </button>
+                    )}
+                    {adResponse[path] && (
+                      <button onClick={() => handleCopy(path)}>
+                        Copy to clipboard
+                      </button>
+                    )}
+                    {(adResponse[path] || validateResult[path]) && (
+                      <button onClick={() => toggleAdResponseVisible(path)}>
+                        {contentVisible[path] ? "Hide" : "Show"}
+                      </button>
+                    )}
+                    {contentVisible[path] && (
+                      <pre>
+                        {validateResult[path] === true ? (
+                          "Add response is all right"
+                        ) : validateResult[path] ? (
+                          JSON.stringify(validateResult[path], null, 2)
+                        ) : adResponse[path] ? (
+                          <div>
+                            <span
+                              style={{ fontWeight: "bold", fontSize: "28px" }}
+                            >
+                              {path.match(/(runs.*?\.json)/)[1]}
+                            </span>
+                            <br />
+                            {JSON.stringify(adResponse[path], null, 2)}
+                          </div>
+                        ) : (
+                          "Click"
+                        )}
+                      </pre>
+                    )}
+                  </div>
+                ))}
             </div>
-          ) : <></>}
+          ) : (
+            <></>
+          )}
         </>
-      ) : <></>}
+      ) : (
+        <></>
+      )}
     </>
   );
 }
