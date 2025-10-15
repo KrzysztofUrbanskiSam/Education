@@ -23,7 +23,7 @@ function OutputSection({
   const [validateResult, setValidateResult] = useState({});
   const [contentVisible, setContentVisible] = useState({});
 
-  const toggleOutoutSectionVisible = () => {
+  const toggleOutputSectionVisible = () => {
     setOutputVisible((previous) => !previous);
   };
 
@@ -135,9 +135,9 @@ function OutputSection({
       <div className="output-section">
         <div className="output-action-section">
           <button onClick={handleRunScript}>Generate ad response</button>
-          <button onClick={toggleOutoutSectionVisible}>
-            {outputVisible ? "Show" : "Hide"}
-          </button>
+          {fileRenderedPath.length ? <button onClick={toggleOutputSectionVisible}>
+            {outputVisible ? "Hide" : "Show"}
+          </button> : <></>}
         </div>
         {isAdResponseGenerating ? (
           <div className="output-action-section">

@@ -9,8 +9,7 @@
 }
 
 .content {
-  
-  background-color: #ffffff;
+  background-color: #f0f0f0;
   color: #333;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   font-size: calc(10px + 2vmin);
