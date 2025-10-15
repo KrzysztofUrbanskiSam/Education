@@ -101,7 +101,7 @@ const validateResponseData = (data) => {
   return valid;
 };
 
-app.post("/open_ad_reponse", async (req, res) => {
+app.post("/open_ad_response", async (req, res) => {
   try {
     const pathName = req.body;
     const fileData = await readAdResponseFile(pathName);
