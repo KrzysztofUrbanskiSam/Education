@@ -7,6 +7,7 @@
 # Add localization parquet
 # localhost , port, DB kofigurowalne
 
+start=`date +%s.%N`
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_DIR=$(git rev-parse --show-toplevel)
 # source ${REPO_DIR}/utils/print_helper.sh
@@ -196,7 +197,7 @@ function populate_bidder_with_data() {
 function run_bidder(){
     echo "INFO: starting bidder ..."
     cd ${ROOT_BIDDER}
-    make stop-rtb-bidder &> ${OUTPUT}/logs/bidder_stop.txt
+    make down &> ${OUTPUT}/logs/bidder_stop.txt
     make run-rtb-bidder  &> ${OUTPUT}/logs/bidder_start.txt
     # go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
 }
@@ -229,10 +230,11 @@ function handle_exit(){
 
     if [[ $UI_MODE == false ]]; then
         echo "INFO: Stopping bidder ..."
-        make down-rtb-bidder &> /dev/null
+        cd ${ROOT_BIDDER}
+        make down &> ${OUTPUT}/logs/bidder_stop.txt
     else
         echo "INFO: Will not stop bidder since it is UI invocation"
-        echo "HINT: To stop bidder manually run: make down-rtb-bidder in ${ROOT_BIDDER}"
+        echo "HINT: To stop bidder manually run: make stop-local-env in ${ROOT_BIDDER}"
     fi
 }
 
@@ -264,5 +266,8 @@ sleep 10s
 get_ad_responses ${CREATIVES_IDS[@]}
 
 handle_exit
+end=`date +%s.%N`
+runtime=$( echo "$end - $start" | bc -l )
 
+echo "INFO: Sript executed in ${runtime}s"
 exit 0
