@@ -114,7 +114,7 @@ The backend is built with Express.js and provides the following endpoints:
 - `POST /script` - Execute the shell script with provided parameters
 - `POST /upload_mock` - Load mock data based on creative type
 - `GET /api/status` - Check server status
-- `POST /open_ad_reponse` - Open and retrieve ad response file content
+- `POST /open_ad_response` - Open and retrieve ad response file content
 - `POST /validate` - Validate generated ad response
 
 To modify the backend:
