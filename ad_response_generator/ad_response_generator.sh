@@ -172,6 +172,16 @@ function generate_preqa_creatives_data(){
     fi
 }
 
+function generate_localization_data(){
+    echo "INFO: Generating localization data. May take 5s"
+    cd ${ROOT_DATA_ACTIVATION}
+    rm -f ${ROOT_GENERATED_LOCALIZATION_PARQUET}
+    ./dev-run.sh localization &> ${OUTPUT}/logs/data-activation-localization.txt
+    if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
+        echo "ERROR: Failed to generate localization parquet. Exiting ..." && exit 1
+    fi
+}
+
 function convert_da_parquet_to_json() {
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${OUTPUT_JSON_CREATIVES}
 }
@@ -192,6 +202,7 @@ function populate_bidder_with_data() {
     cp ${ROOT_GENERATED_TEST_TV_PARQUET} ${ROOT_BIDDER}/test/data-activation/data
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/preqa_creatives.parquet
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/creatives.parquet
+    cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
 }
 
 function run_bidder(){
@@ -252,6 +263,7 @@ setup_bidder
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data
     generate_test_tv_data
+    generate_localization_data
 }
 fi
 
