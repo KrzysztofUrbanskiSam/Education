@@ -231,4 +231,5 @@ function setup_data_activation(){
     ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation
     ROOT_GENERATED_TEST_TV_PARQUET=${ROOT_GENERATED_DATA}/test_tvs_creatives/parquet/test_tvs_creatives.parquet
     ROOT_GENERATED_PREQA_CREATIVES_PARQUET=${ROOT_GENERATED_DATA}/preqa_creatives/parquet/preqa_creatives.parquet
+    ROOT_GENERATED_LOCALIZATION_PARQUET=${ROOT_GENERATED_DATA}/localization/parquet/localization.parquet
 }

@@ -68,7 +68,7 @@ function do_verification() {
 
     if command ss | grep :3000 &> /dev/null; then
         echo "WARNING: There is an application working on port 3000. Script may work improperly"
-        if ! command docker ps | grep :3000 | grep aerospike; then
+        if ! command docker ps | grep :3000 | grep aerospike &> /dev/null; then
             echo "ERROR: On port 3000 is running something but not 'aerospike', kill that process"
             echo "HINT: To kill process use 'sudo kill -9 $(ps -aux | grep "bin/rails s" | grep -v "grep" | cut -d" " -f 2)'"
         fi
