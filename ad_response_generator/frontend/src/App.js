@@ -32,7 +32,7 @@ function App() {
         <div className="header">
           <h1>Add response generator</h1>
           <button onClick={toggleTestMode}>
-            {testModeVisible ? "Hide Test Mode" : "Show Test Mode"}
+            {testModeVisible ? "Hide Examples" : "Show Examples"}
           </button>
         </div>
         <div className="action">

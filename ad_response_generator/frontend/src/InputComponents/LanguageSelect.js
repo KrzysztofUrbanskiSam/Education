@@ -10,7 +10,7 @@ const LanguageSelect = ({ language, setLanguage }) => {
 
   return (
     <div className="languages-singleselect-section">
-      <h4>language to be passed to tv</h4>
+      <h4>TV language</h4>
       <select
         value={language}
         onChange={changeLanguage}
