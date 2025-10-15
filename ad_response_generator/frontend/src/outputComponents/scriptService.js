@@ -50,7 +50,7 @@ const openMock = async (mockName) => {
 const openAdResponse = async (pathName) => {
   if (pathName === "") pathName = "path name is not proper";
   try {
-    const res = await fetch("http://localhost:5000/open_ad_rseponse", {
+    const res = await fetch("http://localhost:5000/open_ad_response", {
       method: "POST",
       headers: {
         "Content-Type": "text/plain",
