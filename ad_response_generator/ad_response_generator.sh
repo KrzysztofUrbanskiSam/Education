@@ -41,7 +41,6 @@ output_backup=${OUTPUT}/backup
 ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}
 ROOT_BIDDER=${ROOT_BIDDER}
 
-PYTHON="/home/k.urbanski/.venv/bin/python"
 PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 
 # Initialize arrays
@@ -264,7 +263,17 @@ function handle_exit(){
 
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
+
 do_verification
+if [ ! $verification_success == true ]; then
+    echo "INFO: Please correct missing setup and rerun the script"
+    exit 1
+fi
+
+[ -e $OUTPUT ] && rm -rf ${OUTPUT}
+echo "INFO: Output directory: $OUTPUT"
+mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup $output_backup
+
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
 
