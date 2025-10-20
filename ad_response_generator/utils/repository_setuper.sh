@@ -191,6 +191,7 @@ function setup_da_branch() {
     _da_sql_preqa_creatives_orig=${output_backup}/preqa_creatives.sql.orig
     _da_sql_ttc=${output_backup}/test_tvs_creatives.sql
     _da_sql_ttc_orig=${output_backup}/test_tvs_creatives.sql.orig
+    _da_sql_creatives_strategy_orig=${output_backup}/creativesStrategy.go.orig
 }
 
 
@@ -202,6 +203,7 @@ function setup_data_activation(){
 
     cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives_orig}
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc_orig}
+    cp ${ROOT_SQL_CREATIVES_STRATEGY} ${_da_sql_creatives_strategy_orig}
 
     # Replace in preqa_creatives.sql
     sed -i -r -e "/WHERE\s+.*/d" "${ROOT_SQL_PREQA_CREATIVES}"
@@ -213,6 +215,9 @@ function setup_data_activation(){
 
     # HOPE: this is just temporary substitiution
     sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_DATA_ACTIVATION}/transformation/test_tvs_creatives.go
+
+    # Modify creativesStrategy.go to disable S3 upload
+    sed -i -r -e "s|(\s+)(WriteToS3.*filepath)|\1//\2|" ${ROOT_SQL_CREATIVES_STRATEGY}
 
     cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc}
