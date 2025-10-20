@@ -242,6 +242,7 @@ function handle_exit(){
     echo "INFO: Handling exit"
     cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
     cp ${_da_sql_ttc_orig} ${ROOT_SQL_TEST_TVS_CREATIVES}
+    cp ${_da_sql_creatives_strategy_orig} ${ROOT_SQL_CREATIVES_STRATEGY}
     cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
     cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
 
