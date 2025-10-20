@@ -73,7 +73,6 @@ function execute_sql_query() {
     echo "$($DB_CONNECT -t -c "$1" | tr '|' ',')"
 }
 
-
 function setup_test_tvs() {
     local creative_ids=("$@")
     local creatives_ready=true
@@ -205,12 +204,17 @@ function populate_bidder_with_data() {
     cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
 }
 
+function run_bidder_services(){
+    echo "INFO: starting bidder services ..."
+    cd ${ROOT_BIDDER}
+    make stop-local-env &> ${OUTPUT}/logs/bidder_services_stop.txt
+    make start-local-env &> ${OUTPUT}/logs/bidder_services_start.txt
+}
+
 function run_bidder(){
     echo "INFO: starting bidder ..."
     cd ${ROOT_BIDDER}
-    make down &> ${OUTPUT}/logs/bidder_stop.txt
-    make run-rtb-bidder  &> ${OUTPUT}/logs/bidder_start.txt
-    # go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
+    go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
 }
 
 function get_ad_responses(){
@@ -228,6 +232,9 @@ function get_ad_responses(){
         echo "curl -s '$endpoint'" &> ${creative_ad_request}
         curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
         echo -e "INFO: For ${creative_id}\n\tAd request: ${creative_ad_request}\n\tAd response: ${creative_ad_response}"
+        if [ $(cat ${creative_ad_response} | wc -c ) -le 3 ]; then
+            echo "WARNING: Empty ad response for ${creative_id}! Check logs for more details"
+        fi
         index=$(expr $index + 1)
     done
 }
@@ -239,13 +246,18 @@ function handle_exit(){
     cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
     cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
 
-    if [[ $UI_MODE == false ]]; then
-        echo "INFO: Stopping bidder ..."
-        cd ${ROOT_BIDDER}
-        make down &> ${OUTPUT}/logs/bidder_stop.txt
+    echo "INFO: Stopping bidder services ..."
+    make stop-local-env &> /dev/null
+    echo "INFO: Stopping bidder ..."
+    bidder_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
+    if [[ -z $bidder_pid ]]; then
+        echo "ERROR: Bidder process not found by ss command. Trying with ps -aux."
+        bidder_pid=$(ps -aux | grep -E "go run.*${ROOT_BIDDER_CONFIG_LOCAL}" | cut -f 2 -d ' ' | xargs | cut -f 1 -d ' ')
+    fi
+    if [[ -n $bidder_pid ]]; then
+        kill -9 $bidder_pid
     else
-        echo "INFO: Will not stop bidder since it is UI invocation"
-        echo "HINT: To stop bidder manually run: make stop-local-env in ${ROOT_BIDDER}"
+        echo "ERROR: Could not kill bidder process"
     fi
 }
 
@@ -263,7 +275,9 @@ setup_bidder
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data
     generate_test_tv_data
-    generate_localization_data
+    if [[ "${AD_LANGUAGE}" != 'en' ]]; then
+        generate_localization_data
+    fi
 }
 fi
 
@@ -271,9 +285,11 @@ fi
 # # parse_parquet_files
 
 populate_bidder_with_data
+
+run_bidder_services &
+sleep 5s
 run_bidder &
-sleep 10s
-# wait_for_bidder 20
+sleep 5s
 
 get_ad_responses ${CREATIVES_IDS[@]}
 

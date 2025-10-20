@@ -66,8 +66,7 @@ function do_verification() {
         verification_success=false
     fi
 
-    if command ss | grep :3000 &> /dev/null; then
-        echo "WARNING: There is an application working on port 3000. Script may work improperly"
+    if command ss -lpt | grep :3000 &> /dev/null; then
         if ! command docker ps | grep :3000 | grep aerospike &> /dev/null; then
             echo "ERROR: On port 3000 is running something but not 'aerospike', kill that process"
             echo "HINT: To kill process use 'sudo kill -9 $(ps -aux | grep "bin/rails s" | grep -v "grep" | cut -d" " -f 2)'"
@@ -89,8 +88,10 @@ function do_verification() {
         echo "HINT: Without Erlang it is impossible to generate term data"
     fi
 
-    if command ss | grep 8085 &> /dev/null; then
-        echo "WARNING: There is an application working on port 8085. Script may work improperly"
+    if command ss -lpt | grep :8085 &> /dev/null; then
+        echo "WARNING: There is an application working on port 8085. This is Bidder port. May work improperly"
+        app_on_port_8085_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
+        echo "HINT: If you want to kill run: 'sudo kill -9 ${app_on_port_8085_pid}'"
     fi
 
     [ -e $OUTPUT ] && rm -rf ${OUTPUT}
