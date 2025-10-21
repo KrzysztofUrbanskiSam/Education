@@ -2,10 +2,7 @@
 
 # TODO:
 # print warning/errors functions with colors
-# undo modyfikacji
 # Mozliwosc widzenia modyfikacji w term plikach
-# Add localization parquet
-# localhost , port, DB kofigurowalne
 
 start=`date +%s.%N`
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -46,6 +43,11 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 # Initialize arrays
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
+CREATIVES_PARQUETS=()
+CREATIVES_TERM=()
+CREATIVES_BERT=()
+CREATIVES_AD_RESPONSES=()
+CREATIVES_AD_REQUESTS=()
 TVS_PSIDS=()
 
 # Conisder making it as a dictionary
@@ -187,6 +189,31 @@ function convert_da_parquet_to_json() {
     echo "INFO: Output parquet in json for test_tvs_creatives: ${OUTPUT_TEST_TVS}"
 }
 
+function process_term_bert_files() {
+    echo "INFO: Processing term bert files ..."
+    term_files=$(find ${ROOT_GENERATED_DATA_PREQUA_CREATIVES_TERM}/ -type f -name "*.term" | xargs)
+
+    for creative_id in ${CREATIVES_IDS[@]}; do
+        term_file_found=false
+        for term_file in $term_files; do
+            if grep -q "$creative_id" "${term_file}"; then
+                echo "INFO: For ${creative_id} generated term file: ${term_file}"
+                term_file_found=true
+                break
+            fi
+        done
+        if [ "$term_file_found" = false ]; then
+            echo "ERROR: No term file found for creative_id $creative_id"
+        fi
+    done
+}
+
+function handle_trap() {
+    echo "handling trap"
+}
+
+trap handle_trap EXIT
+
 function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
@@ -319,6 +346,7 @@ fi
 
 convert_da_parquet_to_json
 parse_parquet_files
+process_term_bert_files
 
 populate_bidder_with_data
 
