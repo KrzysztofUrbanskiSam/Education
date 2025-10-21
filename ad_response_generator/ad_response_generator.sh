@@ -21,6 +21,7 @@ AD_LANGUAGE="en"
 BRANCH_BIDDER=""
 BRANCH_DA=""
 REFRESH_DA_DATA=true
+UNDO_CHANGES=true
 UI_MODE=false
 
 DB_HOST="localhost"
@@ -29,7 +30,6 @@ DB_USER="adgear"
 DB_NAME="rtb-trader-dev"
 
 OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
-OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
 output_ad_requests=${OUTPUT}/ad_requests
 output_ad_responses=${OUTPUT}/ad_responses
@@ -182,14 +182,17 @@ function generate_localization_data(){
 
 function convert_da_parquet_to_json() {
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${OUTPUT_JSON_CREATIVES}
+    ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_TEST_TV_PARQUET} ${OUTPUT_TEST_TVS}
+    echo "INFO: Output parquet in json for preqa_creatives: ${OUTPUT_JSON_CREATIVES}"
+    echo "INFO: Output parquet in json for test_tvs_creatives: ${OUTPUT_TEST_TVS}"
 }
 
 function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
-        creative_parquet_out_json=${OUTPUT}/creative_da_json_${id}.json
+        creative_parquet_out_json=${output_artifacts}/creative_da_json_${id}.json
         echo $line &> ${creative_parquet_out_json}
-        echo "INFO: DA json output for creative_id: $id saved to ${creative_parquet_out_json}"
+        echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
 
     done < ${OUTPUT_JSON_CREATIVES}
 
@@ -197,10 +200,23 @@ function parse_parquet_files() {
 
 function populate_bidder_with_data() {
     echo "INFO: populating bidder with DA data ..."
+    if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
+        echo "ERROR: Generated 'preqa_creatives' data not found."
+        if [[ $REFRESH_DA_DATA == false ]]; then
+            echo "HINT: Rerun script without '--no-da-refresh' flag"
+        fi
+        exit 1
+    fi
     cp ${ROOT_GENERATED_TEST_TV_PARQUET} ${ROOT_BIDDER}/test/data-activation/data
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/preqa_creatives.parquet
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/creatives.parquet
-    cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
+    if [ ${AD_LANGUAGE} != "en" ]; then
+        if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
+            cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
+        else
+            echo "WARNING: Localization parquet file not found. Default 'Ad language' will be 'en'"
+        fi
+    fi
 }
 
 function run_bidder_services(){
@@ -214,6 +230,10 @@ function run_bidder(){
     echo "INFO: starting bidder ..."
     cd ${ROOT_BIDDER}
     go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
+}
+
+function verify_bidder_works() {
+    echo "INFO: Verifying bidder works"
 }
 
 function get_ad_responses(){
@@ -238,16 +258,20 @@ function get_ad_responses(){
     done
 }
 
-function handle_exit(){
+function handle_exit() {
     echo "INFO: Handling exit"
-    cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
-    cp ${_da_sql_ttc_orig} ${ROOT_SQL_TEST_TVS_CREATIVES}
-    cp ${_da_sql_creatives_strategy_orig} ${ROOT_SQL_CREATIVES_STRATEGY}
-    cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
-    cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
+    if [[ $UNDO_CHANGES == true ]]; then
+        cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
+        cp ${_da_sql_ttc_orig} ${ROOT_SQL_TEST_TVS_CREATIVES}
+        cp ${_da_sql_creatives_strategy_orig} ${ROOT_SQL_CREATIVES_STRATEGY}
+        cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
+        cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
+    else
+        echo "INFO: Script invoked with '--no-undo-changes' - will not revert changes in repositories"
+    fi
 
     echo "INFO: Stopping bidder services ..."
-    make stop-local-env &> /dev/null
+    make stop-local-env &>/dev/null
     echo "INFO: Stopping bidder ..."
     bidder_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
     if [[ -z $bidder_pid ]]; then
@@ -274,6 +298,8 @@ fi
 [ -e $OUTPUT ] && rm -rf ${OUTPUT}
 echo "INFO: Output directory: $OUTPUT"
 mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup $output_backup
+OUTPUT_JSON_CREATIVES=${output_artifacts}/creatives.parquet.json
+OUTPUT_TEST_TVS=${output_artifacts}/test_tvs_creatives.parquet.json
 
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
@@ -291,8 +317,8 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 }
 fi
 
-# convert_da_parquet_to_json
-# # parse_parquet_files
+convert_da_parquet_to_json
+parse_parquet_files
 
 populate_bidder_with_data
 
@@ -300,6 +326,8 @@ run_bidder_services &
 sleep 5s
 run_bidder &
 sleep 5s
+
+verify_bidder_works
 
 get_ad_responses ${CREATIVES_IDS[@]}
 
