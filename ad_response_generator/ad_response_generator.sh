@@ -30,7 +30,6 @@ DB_USER="adgear"
 DB_NAME="rtb-trader-dev"
 
 OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
-OUTPUT_JSON_CREATIVES=${OUTPUT}/creatives.parquet.tmp.json
 
 output_ad_requests=${OUTPUT}/ad_requests
 output_ad_responses=${OUTPUT}/ad_responses
@@ -183,14 +182,17 @@ function generate_localization_data(){
 
 function convert_da_parquet_to_json() {
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${OUTPUT_JSON_CREATIVES}
+    ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_TEST_TV_PARQUET} ${OUTPUT_TEST_TVS}
+    echo "INFO: Output parquet in json for preqa_creatives: ${OUTPUT_JSON_CREATIVES}"
+    echo "INFO: Output parquet in json for test_tvs_creatives: ${OUTPUT_TEST_TVS}"
 }
 
 function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
-        creative_parquet_out_json=${OUTPUT}/creative_da_json_${id}.json
+        creative_parquet_out_json=${output_artifacts}/creative_da_json_${id}.json
         echo $line &> ${creative_parquet_out_json}
-        echo "INFO: DA json output for creative_id: $id saved to ${creative_parquet_out_json}"
+        echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
 
     done < ${OUTPUT_JSON_CREATIVES}
 
@@ -269,7 +271,7 @@ function handle_exit() {
     fi
 
     echo "INFO: Stopping bidder services ..."
-    make stop-local-env &> /dev/null
+    make stop-local-env &>/dev/null
     echo "INFO: Stopping bidder ..."
     bidder_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
     if [[ -z $bidder_pid ]]; then
@@ -296,6 +298,8 @@ fi
 [ -e $OUTPUT ] && rm -rf ${OUTPUT}
 echo "INFO: Output directory: $OUTPUT"
 mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup $output_backup
+OUTPUT_JSON_CREATIVES=${output_artifacts}/creatives.parquet.json
+OUTPUT_TEST_TVS=${output_artifacts}/test_tvs_creatives.parquet.json
 
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
@@ -313,8 +317,8 @@ if [[ $REFRESH_DA_DATA == true ]]; then {
 }
 fi
 
-# convert_da_parquet_to_json
-# # parse_parquet_files
+convert_da_parquet_to_json
+parse_parquet_files
 
 populate_bidder_with_data
 
