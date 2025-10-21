@@ -229,8 +229,11 @@ function setup_data_activation(){
     fi
 
     if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
-        echo "ERROR: Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
-        exit 1
+        sed -i -r -e "s|(\s+)(GROUP.*)|\1WHERE ${sql_creative_limitation_for_tvs}\n\1\2|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+        if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
+            echo "ERROR: Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
+            exit 1
+        fi
     fi
 
     ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation

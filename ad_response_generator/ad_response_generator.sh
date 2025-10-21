@@ -21,6 +21,7 @@ AD_LANGUAGE="en"
 BRANCH_BIDDER=""
 BRANCH_DA=""
 REFRESH_DA_DATA=true
+UNDO_CHANGES=true
 UI_MODE=false
 
 DB_HOST="localhost"
@@ -197,10 +198,23 @@ function parse_parquet_files() {
 
 function populate_bidder_with_data() {
     echo "INFO: populating bidder with DA data ..."
+    if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
+        echo "ERROR: Generated 'preqa_creatives' data not found."
+        if [[ $REFRESH_DA_DATA == false ]]; then
+            echo "HINT: Rerun script without '--no-da-refresh' flag"
+        fi
+        exit 1
+    fi
     cp ${ROOT_GENERATED_TEST_TV_PARQUET} ${ROOT_BIDDER}/test/data-activation/data
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/preqa_creatives.parquet
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/creatives.parquet
-    cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
+    if [ ${AD_LANGUAGE} != "en" ]; then
+        if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
+            cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
+        else
+            echo "WARNING: Localization parquet file not found. Default 'Ad language' will be 'en'"
+        fi
+    fi
 }
 
 function run_bidder_services(){
@@ -214,6 +228,10 @@ function run_bidder(){
     echo "INFO: starting bidder ..."
     cd ${ROOT_BIDDER}
     go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
+}
+
+function verify_bidder_works() {
+    echo "INFO: Verifying bidder works"
 }
 
 function get_ad_responses(){
@@ -238,13 +256,17 @@ function get_ad_responses(){
     done
 }
 
-function handle_exit(){
+function handle_exit() {
     echo "INFO: Handling exit"
-    cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
-    cp ${_da_sql_ttc_orig} ${ROOT_SQL_TEST_TVS_CREATIVES}
-    cp ${_da_sql_creatives_strategy_orig} ${ROOT_SQL_CREATIVES_STRATEGY}
-    cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
-    cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
+    if [[ $UNDO_CHANGES == true ]]; then
+        cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
+        cp ${_da_sql_ttc_orig} ${ROOT_SQL_TEST_TVS_CREATIVES}
+        cp ${_da_sql_creatives_strategy_orig} ${ROOT_SQL_CREATIVES_STRATEGY}
+        cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
+        cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
+    else
+        echo "INFO: Script invoked with '--no-undo-changes' - will not revert changes in repositories"
+    fi
 
     echo "INFO: Stopping bidder services ..."
     make stop-local-env &> /dev/null
@@ -300,6 +322,8 @@ run_bidder_services &
 sleep 5s
 run_bidder &
 sleep 5s
+
+verify_bidder_works
 
 get_ad_responses ${CREATIVES_IDS[@]}
 

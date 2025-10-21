@@ -111,7 +111,9 @@ function do_verify_bidder_ports_not_used(){
 function do_verify_trader_db_connection(){
     if ! command $DB_CONNECT -c "SELECT 1;" &>/dev/null; then
         echo "ERROR: Failed to connect to database with '${DB_CONNECT}'"
-        echo "HINT: Verify connection setup"
+        echo "HINT: Verify connection setup ..."
+        echo "HINT: If you run on local machine try:"
+        echo "HINT:    cd <PROJECTS_ROOT>/rtb-trader && docker compose up db -d"
         verification_success=false
     fi
 }

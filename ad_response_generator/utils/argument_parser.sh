@@ -21,6 +21,8 @@ function parse_arguments() {
                 shift; AD_LANGUAGE="$1"; shift ;;
             --no-da-refresh)
                 REFRESH_DA_DATA=false; shift ;;
+            --no-undo-changes)
+                UNDO_CHANGES=false; shift ;;
             --ui-mode)
                 UI_MODE=true; shift ;;
             --debug)
