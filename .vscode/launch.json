@@ -4,56 +4,63 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    // {
+    //   "name": "Python Debugger: Current File",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${file}",
+    //   "console": "integratedTerminal"
+    // },
+    // {
+    //   "name": "Python Debugger: Proff Taxi",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "/home/k.urbanski/Projects/Education/Python/test_proff_tax_system_2.py",
+    //   "console": "integratedTerminal"
+    // },
+    // {
+    //   "name": "Python Debugger: Proff Road destruction",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "/home/k.urbanski/Projects/Education/Python/test_proff_road_destruction.py",
+    //   "console": "integratedTerminal"
+    // },
+    // {
+    //   "name": "Python Debugger: Proff parkibg",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "/home/k.urbanski/Projects/Education/Python/test_proff_automated_parking_lot.py",
+    //   "console": "integratedTerminal"
+    // },
+    // {
+    //   "name": "Seam v2",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${file}",
+    //   "console": "integratedTerminal",
+    //   "args": [
+    //     "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer.jpg",
+    //     "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_seam_v2.jpg"
+    //   ]
+    // },
+    // {
+    //   "name": "Curve",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${file}",
+    //   "console": "integratedTerminal",
+    //   "args": [
+    //     "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_resized.jpg",
+    //     "200",
+    //     "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_resized_300px.jpg"
+    //   ]
+    // },
     {
-      "name": "Python Debugger: Current File",
+      "name": "Python Debugger: Proff bakery coffe",
       "type": "debugpy",
       "request": "launch",
-      "program": "${file}",
+      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_bakery_coffee.py",
       "console": "integratedTerminal"
-    },
-    {
-      "name": "Python Debugger: Proff Taxi",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_tax_system_2.py",
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Python Debugger: Proff Road destruction",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_road_destruction.py",
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Python Debugger: Proff parkibg",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_automated_parking_lot.py",
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Seam v2",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal",
-      "args": [
-        "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer.jpg",
-        "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_seam_v2.jpg"
-      ]
-    },
-    {
-      "name": "Curve",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal",
-      "args": [
-        "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_resized.jpg",
-        "200",
-        "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_resized_300px.jpg"
-      ]
     }
   ]
 }
