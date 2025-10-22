@@ -57,6 +57,9 @@ function get_creaitve_pid(){
     elif [ "$1" == "Creatives::StvEdenImmersion" ]; then
         echo "9047"
     elif [ "$1" == "Creatives::StvGamerHub" ]; then
+        if [ "$2" == "60" ]; then
+            echo "2230"
+        fi
         if [ "$2" == "64" ]; then
             echo "2410"
         fi
@@ -106,7 +109,7 @@ function setup_test_tvs() {
         if [[ -z $tv_id ]]; then
             local tv_psid=$(tr -dc a-z0-9 </dev/urandom | head -c 32; echo)
             $DEBUG && echo "Creating new test TV record for psid: $psid"
-            $DB_CONNECT -c "INSERT INTO test_tvs (name, model, country_id, psid, state) VALUES ('$tv_name', '22-25', 238, '$tv_psid', 'active');"
+            $DB_CONNECT -c "INSERT INTO test_tvs (name, model, country_id, psid, state) VALUES ('$tv_name', '22-25', 238, '$tv_psid', 'active');" &> /dev/null
             # $DB_CONNECT -c "INSERT INTO test_tvs (name, model, country_id, psid, state) VALUES ('$tv_name', '22-25', 238, 'i5owir66ktsotl7s2g7yuapxlb4cejcy', 'active');"
             local tv_data=$(execute_sql_query "SELECT id, psid FROM test_tvs WHERE name='$tv_name';")
             local tv_id=$(echo $tv_data | cut -d',' -f1)

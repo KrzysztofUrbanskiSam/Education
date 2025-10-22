@@ -87,6 +87,7 @@ function setup_git_repository() {
     local repo_url="$3"
     local root_env_var="$4"
 
+    echo "INFO: Setuping repository ${repo_name}"
     # Get the value of the root environment variable
     local root_path="${!root_env_var}"
 
