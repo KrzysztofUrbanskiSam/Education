@@ -43,6 +43,7 @@ PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
 # Initialize arrays
 CREATIVES_IDS=()
 CREATIVES_PIDS=()
+CREATIVES_NAMES=()
 CREATIVES_PARQUETS=()
 CREATIVES_TERM=()
 CREATIVES_BERT=()
@@ -53,7 +54,11 @@ TVS_PSIDS=()
 # Conisder making it as a dictionary
 function get_creaitve_pid(){
     if [ "$1" == "Creatives::StvFirstScreenMasthead" ]; then
-        echo "2400"
+        if [ "$2" == "59" ]; then
+            echo "2220"
+        else
+            echo "2400"
+        fi
     elif [ "$1" == "Creatives::StvEdenImmersion" ]; then
         echo "9047"
     elif [ "$1" == "Creatives::StvGamerHub" ]; then
@@ -82,10 +87,11 @@ function setup_test_tvs() {
     local creatives_ready=true
     echo "INFO: Setting up test TVs ..."
     for creative_id in "${creative_ids[@]}"; do
-        local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id, life_stage FROM creatives WHERE id='$creative_id';")
+        local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id, life_stage, name FROM creatives WHERE id='$creative_id';")
         local creative_type=$(echo $creative_data | cut -d',' -f1 | xargs)
         local creative_subtype=$(echo $creative_data | cut -d',' -f2 | xargs)
         local creative_lifestage=$(echo $creative_data | cut -d',' -f3 | xargs)
+        local creative_name=$(echo $creative_data | cut -d',' -f4 | xargs)
 
         if [[ -z "${creative_data}" ]]; then
             echo "ERROR: Creative ${creative_id} does not exist in database. Exiting..."
@@ -114,12 +120,11 @@ function setup_test_tvs() {
             local tv_data=$(execute_sql_query "SELECT id, psid FROM test_tvs WHERE name='$tv_name';")
             local tv_id=$(echo $tv_data | cut -d',' -f1)
         fi
-        # echo $creative_type
-        # creative_type="Creatives::StvGamerHub"
-        # local creative_pid=${CREATIVE_TYPE_TO_PID_MAP["$creative_type"]}
         local creative_pid=$(get_creaitve_pid $creative_type $creative_subtype)
         if [ -z "${creative_pid}" ]; then
-            echo "WARNING: for ${creative_id} cannot find pid"
+            echo "ERROR: for ${creative_id} cannot find pid."
+            echo "HINT: Contact script maintainers"
+            exit 1
         fi
 
         # Assign creative_id with dedicated TV
@@ -130,8 +135,9 @@ function setup_test_tvs() {
         fi
 
         CREATIVES_PIDS+=("${creative_pid}")
+        CREATIVES_NAMES+=("${creative_name}")
         TVS_PSIDS+=("$tv_psid")
-        echo "INFO: Setup for creative ${creative_id} -> PID:${creative_pid} PSID:${tv_psid}"
+        $DEBUG && echo "INFO: Setup for creative ${creative_id} -> PID:${creative_pid} PSID:${tv_psid}"
     done
 
     if [[ $creatives_ready != true ]]; then
@@ -139,6 +145,7 @@ function setup_test_tvs() {
         echo "HINT: To perform transcoding, run rtb-trader and additionally in separate terminal run:"
         echo "HINT: QUEUE=* rails resque:work"
         echo "HINT: Open your creative, save again, refresh preview page, and notice 'green dot' indicating creative is ready."
+        exit 1
     fi
 
     if [[ ${#TVS_PSIDS[@]} == 0 ]]; then
@@ -147,13 +154,13 @@ function setup_test_tvs() {
     fi
 }
 
-function get_test_tvs_creatives(){
-    local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-    local where_search="WHERE[[:space:]]\+creative_id"
-    local where_clause="WHERE creative_id IN ($creative_ids_list)"
+# function get_test_tvs_creatives(){
+#     local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
+#     local where_search="WHERE[[:space:]]\+creative_id"
+#     local where_clause="WHERE creative_id IN ($creative_ids_list)"
 
-    replace_where_clause "${ROOT_SQL_TEST_TVS_CREATIVES}" "${where_search}" "${where_clause}"
-}
+#     replace_where_clause "${ROOT_SQL_TEST_TVS_CREATIVES}" "${where_search}" "${where_clause}"
+# }
 
 function generate_test_tv_data(){
     echo "INFO: Generating Test TV data. May take 10s ..."
@@ -163,6 +170,7 @@ function generate_test_tv_data(){
     if [ ! -e ${ROOT_GENERATED_TEST_TV_PARQUET} ]; then
         echo "Failed to generate test_tvs_creatives parquet. Exiting ..." && exit 1
     fi
+    echo "INFO: Generated parquet for test_tvs: ${ROOT_GENERATED_TEST_TV_PARQUET}"
 }
 
 function generate_preqa_creatives_data(){
@@ -188,8 +196,8 @@ function generate_localization_data(){
 function convert_da_parquet_to_json() {
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${OUTPUT_JSON_CREATIVES}
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_TEST_TV_PARQUET} ${OUTPUT_TEST_TVS}
-    echo "INFO: Output parquet in json for preqa_creatives: ${OUTPUT_JSON_CREATIVES}"
-    echo "INFO: Output parquet in json for test_tvs_creatives: ${OUTPUT_TEST_TVS}"
+    echo "INFO: Output in json for preqa_creatives: ${OUTPUT_JSON_CREATIVES}"
+    echo "INFO: Output in json for test_tvs_creatives: ${OUTPUT_TEST_TVS}"
 }
 
 function process_term_bert_files() {
@@ -197,32 +205,50 @@ function process_term_bert_files() {
     term_files=$(find ${ROOT_GENERATED_DATA_PREQUA_CREATIVES_TERM}/ -type f -name "*.term" | xargs)
 
     for creative_id in ${CREATIVES_IDS[@]}; do
+        local creative_term_file="${output_artifacts}/creative_term_${creative_id}.term"
+        local creative_bert_file="${output_artifacts}/creative_term_${creative_id}.bert2"
+        touch ${creative_term_file} ${creative_bert_file}
         term_file_found=false
         for term_file in $term_files; do
             if grep -q "$creative_id" "${term_file}"; then
-                echo "INFO: For ${creative_id} generated term file: ${term_file}"
                 term_file_found=true
+                bert_file=$(dirname ${term_file})/creatives.bert2
+                cp ${term_file} ${creative_term_file}
+                # echo "INFO: For ${creative_id} generated term file: ${creative_term_file}"
+                CREATIVES_TERM+=("${creative_term_file}")
+
+                if [[ -e ${bert_file} ]]; then
+                    cp ${bert_file} ${creative_bert_file}
+                    CREATIVES_BERT+=("${creative_bert_file}")
+                    # echo "INFO: For ${creative_id} generated bert file: ${creative_bert_file}"
+                else
+                    echo "WARNING: For ${creative_id} cannot find bert file: ${creative_bert_file}"
+                    CREATIVES_BERT+=("${creative_bert_file} - empty")
+                fi
                 break
             fi
         done
         if [ "$term_file_found" = false ]; then
-            echo "ERROR: No term file found for creative_id $creative_id"
+            echo "ERROR: No term and bert files found for creative_id $creative_id"
+            CREATIVES_BERT+=("${creative_bert_file} - empty")
+            CREATIVES_TERM+=("${creative_term_file} - empty")
         fi
     done
 }
 
-function handle_trap() {
-    echo "handling trap"
-}
+# function handle_trap() {
+#     echo "handling trap"
+# }
 
-trap handle_trap EXIT
+# trap handle_trap EXIT
 
 function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
         creative_parquet_out_json=${output_artifacts}/creative_da_json_${id}.json
         echo $line &> ${creative_parquet_out_json}
-        echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
+        # echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
+        CREATIVES_PARQUETS+=("${creative_parquet_out_json}")
 
     done < ${OUTPUT_JSON_CREATIVES}
 
@@ -280,10 +306,14 @@ function get_ad_responses(){
 
         echo "curl -s '$endpoint'" &> ${creative_ad_request}
         curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
-        echo -e "INFO: For ${creative_id}\n\tAd request: ${creative_ad_request}\n\tAd response: ${creative_ad_response}"
+        # echo -e "INFO: For ${creative_id}\n\tAd request: ${creative_ad_request}\n\tAd response: ${creative_ad_response}"
         if [ $(cat ${creative_ad_response} | wc -c ) -le 3 ]; then
             echo "WARNING: Empty ad response for ${creative_id}! Check logs for more details"
+            CREATIVES_AD_RESPONSES+=("${creative_ad_response} - empty")
+        else
+            CREATIVES_AD_RESPONSES+=("${creative_ad_response}")
         fi
+        CREATIVES_AD_REQUESTS+=("${creative_ad_request}")
         index=$(expr $index + 1)
     done
 }
@@ -315,6 +345,20 @@ function handle_exit() {
     fi
 }
 
+
+function print_summary() {
+    echo "INFO: Printing summary"
+    local index=0
+    for creative_id in ${CREATIVES_IDS[@]}; do
+        echo "INFO: Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
+        echo -e "INFO:\tParquet file: ${CREATIVES_PARQUETS[$index]}"
+        echo -e "INFO:\tBert file:    ${CREATIVES_BERT[$index]}"
+        echo -e "INFO:\tTerm file:    ${CREATIVES_TERM[$index]}"
+        echo -e "INFO:\tAd request:   ${CREATIVES_AD_REQUESTS[$index]}"
+        echo -e "INFO:\tAd response:  ${CREATIVES_AD_RESPONSES[$index]}"
+        index=$(expr $index + 1)
+    done
+}
 
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
@@ -363,6 +407,7 @@ verify_bidder_works
 get_ad_responses ${CREATIVES_IDS[@]}
 
 handle_exit
+print_summary
 end=`date +%s.%N`
 runtime=$( echo "$end - $start" | bc -l )
 
