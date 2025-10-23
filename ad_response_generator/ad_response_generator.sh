@@ -27,6 +27,7 @@ DB_USER="adgear"
 DB_NAME="rtb-trader-dev"
 
 OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
+EMPTY_MARK=" - empty"
 
 output_ad_requests=${OUTPUT}/ad_requests
 output_ad_responses=${OUTPUT}/ad_responses
@@ -223,15 +224,15 @@ function process_term_bert_files() {
                     # echo "INFO: For ${creative_id} generated bert file: ${creative_bert_file}"
                 else
                     echo "WARNING: For ${creative_id} cannot find bert file: ${creative_bert_file}"
-                    CREATIVES_BERT+=("${creative_bert_file} - empty")
+                    CREATIVES_BERT+=("${creative_bert_file}${EMPTY_MARK}")
                 fi
                 break
             fi
         done
         if [ "$term_file_found" = false ]; then
             echo "ERROR: No term and bert files found for creative_id $creative_id"
-            CREATIVES_BERT+=("${creative_bert_file} - empty")
-            CREATIVES_TERM+=("${creative_term_file} - empty")
+            CREATIVES_BERT+=("${creative_bert_file}${EMPTY_MARK}")
+            CREATIVES_TERM+=("${creative_term_file}${EMPTY_MARK}")
         fi
     done
 }
@@ -307,7 +308,7 @@ function get_ad_responses(){
         # echo -e "INFO: For ${creative_id}\n\tAd request: ${creative_ad_request}\n\tAd response: ${creative_ad_response}"
         if [ $(cat ${creative_ad_response} | wc -c ) -le 3 ]; then
             echo "WARNING: Empty ad response for ${creative_id}! Check logs for more details"
-            CREATIVES_AD_RESPONSES+=("${creative_ad_response} - empty")
+            CREATIVES_AD_RESPONSES+=("${creative_ad_response}${EMPTY_MARK}")
         else
             CREATIVES_AD_RESPONSES+=("${creative_ad_response}")
         fi
@@ -347,6 +348,8 @@ function handle_exit() {
 function print_summary() {
     echo "INFO: Printing summary"
     local index=0
+    local summary_file="${OUTPUT}/summary.json"
+    local json_output="{}"
     for creative_id in ${CREATIVES_IDS[@]}; do
         echo "INFO: Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
         echo -e "INFO:\tParquet file: ${CREATIVES_PARQUETS[$index]}"
@@ -354,8 +357,26 @@ function print_summary() {
         echo -e "INFO:\tTerm file:    ${CREATIVES_TERM[$index]}"
         echo -e "INFO:\tAd request:   ${CREATIVES_AD_REQUESTS[$index]}"
         echo -e "INFO:\tAd response:  ${CREATIVES_AD_RESPONSES[$index]}"
+
+        json_output=$(echo "$json_output" | jq \
+            --arg cid "$creative_id" \
+            --arg c_parquet "${CREATIVES_PARQUETS[$index]%$EMPTY_MARK}" \
+            --arg ad_req "${CREATIVES_AD_REQUESTS[$index]%$EMPTY_MARK}" \
+            --arg ad_resp "${CREATIVES_AD_RESPONSES[$index]%$EMPTY_MARK}" \
+            --arg c_term "${CREATIVES_TERM[$index]%$EMPTY_MARK}" \
+            --arg c_bert "${CREATIVES_BERT[$index]%$EMPTY_MARK}" \
+            '. + {($cid): {"ad_request_file": $ad_req,
+                           "ad_response_file": $ad_resp,
+                           "parquet_file": $c_parquet,
+                           "term_file": $c_term,
+                           "bert_file": $c_bert}}')
+
+        # Save JSON output to file
+        echo "$json_output" | jq --indent 2 . > ${summary_file}
         index=$(expr $index + 1)
     done
+
+    echo "INFO: JSON summary saved to ${summary_file}"
 }
 
 parse_arguments "$@"
