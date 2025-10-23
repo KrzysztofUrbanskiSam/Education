@@ -1,4 +1,4 @@
-verification_success=true
+startup_verification_success=true
 
 function do_verify_input_arguments(){
     if [[ ${#CREATIVES_IDS[@]} -eq 0 ]]; then
@@ -95,20 +95,22 @@ function do_verify_python(){
 }
 
 function do_verify_bidder_ports_not_used(){
+    # Probably port verifications 3000 and 3002 are not needed. Perhaps only fake-unleash is needed
+    # docker_containers=$(docker ps)
+    # if command echo "$socket_status" | grep :3000 &> /dev/null; then
+    #     if ! command echo "$docker_containers" | grep 3000 | grep aerospike &> /dev/null; then
+    #         echo "ERROR: On port 3000 is running something but not 'aerospike', kill that process"
+    #         echo "HINT: To kill process use 'sudo kill -9 $(ps -aux | grep "rails s" | grep -v "grep" | cut -d" " -f 2)'"
+    #     fi
+    # fi
+    # if command echo "$socket_status" | grep :3002 &> /dev/null; then
+    #     if ! command echo "$docker_containers" | grep 3002 | grep aerospike &> /dev/null; then
+    #         echo "ERROR: On port 3002 is running something but not 'aerospike', kill that process"
+    #         echo "HINT: To kill process use 'sudo kill -9 $(ps -aux | grep "rails s" | grep -v "grep" | cut -d" " -f 2)'"
+    #     fi
+    # fi
+
     socket_status=$(ss -lpt)
-    docker_containers=$(docker ps)
-    if command echo "$socket_status" | grep :3000 &> /dev/null; then
-        if ! command echo "$docker_containers" | grep 3000 | grep aerospike &> /dev/null; then
-            echo "ERROR: On port 3000 is running something but not 'aerospike', kill that process"
-            echo "HINT: To kill process use 'sudo kill -9 $(ps -aux | grep "rails s" | grep -v "grep" | cut -d" " -f 2)'"
-        fi
-    fi
-    if command echo "$socket_status" | grep :3002 &> /dev/null; then
-        if ! command echo "$docker_containers" | grep 3002 | grep aerospike &> /dev/null; then
-            echo "ERROR: On port 3002 is running something but not 'aerospike', kill that process"
-            echo "HINT: To kill process use 'sudo kill -9 $(ps -aux | grep "rails s" | grep -v "grep" | cut -d" " -f 2)'"
-        fi
-    fi
     if command echo "$socket_status" | grep :8085 &> /dev/null; then
         echo "WARNING: There is an application working on port 8085. This is Bidder port. May work improperly"
         app_on_port_8085_pid=$(echo "$socket_status" | grep :8085 | grep -oP 'pid=\K\d+')
@@ -126,7 +128,7 @@ function do_verify_trader_db_connection(){
     fi
 }
 
-function do_verification() {
+function do_startup_verification() {
     do_verify_input_arguments
     do_verify_installed_programs
     do_verify_github_setup

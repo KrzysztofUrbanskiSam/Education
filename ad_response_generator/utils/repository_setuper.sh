@@ -87,6 +87,7 @@ function setup_git_repository() {
     local repo_url="$3"
     local root_env_var="$4"
 
+    echo "INFO: Setuping repository ${repo_name}"
     # Get the value of the root environment variable
     local root_path="${!root_env_var}"
 
@@ -210,8 +211,19 @@ function setup_data_activation(){
     sed -i -r -e "s|(ORDER BY.*)|WHERE ${sql_creative_limitation_for_preqa_creatives}\n\1|" "${ROOT_SQL_PREQA_CREATIVES}"
 
     # replace in test_tvs_creatives.sql
-    sed -i -r -e "s|WHERE\s+(test_tvs.*)|WHERE ${sql_creative_limitation_for_tvs} AND \1|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
-    sed -i -r -e "s|WHERE\s+creative_id.*AND\s+(.*)|WHERE ${sql_creative_limitation_for_tvs} AND \1|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+    if command grep -q -E "\s*WHERE" ${ROOT_SQL_TEST_TVS_CREATIVES}; then
+        sed -i -r -e "s|WHERE\s*(test_tvs.*)|WHERE ${sql_creative_limitation_for_tvs} AND \1|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+        sed -i -r -e "s|WHERE\s*creative_id.*AND\s+(.*)|WHERE ${sql_creative_limitation_for_tvs} AND \1|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+        sed -i -r -e "s|(\s*)WHERE creative_id IN .*\)|\1WHERE ${sql_creative_limitation_for_tvs}|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+    else
+        sed -i -r -e "s|(\s*)(GROUP.*)|\1WHERE ${sql_creative_limitation_for_tvs}\n\1\2|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
+    fi
+
+    # Verify sed correctness
+    if ! command grep -q "${sql_creative_limitation_for_preqa_creatives}" "${ROOT_SQL_PREQA_CREATIVES}" ; then
+        echo "ERROR: Failed to modify ${ROOT_SQL_PREQA_CREATIVES} to limit to focused creatives"
+        exit 1
+    fi
 
     # HOPE: this is just temporary substitiution
     sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_DATA_ACTIVATION}/transformation/test_tvs_creatives.go
@@ -222,22 +234,23 @@ function setup_data_activation(){
     cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives}
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc}
 
-    # Verify sed correctness
-    if ! command grep -q "${sql_creative_limitation_for_preqa_creatives}" "${ROOT_SQL_PREQA_CREATIVES}" ; then
-        echo "ERROR: Failed to modify ${ROOT_SQL_PREQA_CREATIVES} to limit to focused creatives"
+    if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
+        echo "ERROR: Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
         exit 1
     fi
 
-    if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
-        sed -i -r -e "s|(\s+)(GROUP.*)|\1WHERE ${sql_creative_limitation_for_tvs}\n\1\2|" "${ROOT_SQL_TEST_TVS_CREATIVES}"
-        if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
-            echo "ERROR: Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
-            exit 1
-        fi
-    fi
-
     ROOT_GENERATED_DATA=${ROOT_DATA_ACTIVATION}/data-activation
+    ROOT_GENERATED_DATA_PREQUA_CREATIVES_TERM=${ROOT_GENERATED_DATA}/preqa_creatives/term
     ROOT_GENERATED_TEST_TV_PARQUET=${ROOT_GENERATED_DATA}/test_tvs_creatives/parquet/test_tvs_creatives.parquet
     ROOT_GENERATED_PREQA_CREATIVES_PARQUET=${ROOT_GENERATED_DATA}/preqa_creatives/parquet/preqa_creatives.parquet
     ROOT_GENERATED_LOCALIZATION_PARQUET=${ROOT_GENERATED_DATA}/localization/parquet/localization.parquet
+}
+
+function print_repository_status() {
+    for repo_path in "$@"; do
+        repo_name=$(basename ${repo_path})
+        cd ${repo_path}
+        repo_metadata=$(git log -1 --pretty=format:'(%cr) - %h - %s')
+        printf "INFO: %-32s - %s\n" "${repo_name}" "${repo_metadata}"
+    done
 }

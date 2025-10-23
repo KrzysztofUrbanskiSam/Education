@@ -1,7 +1,7 @@
 #!/bin/bash
 
-function wait_for_bidder() {
-    local timeout_seconds=${1:-20}
+function verify_bidder_works() {
+    local timeout_seconds=${1:-10}
     local start_time=$(date +%s.%N)
     local end_time
     local elapsed_time
@@ -10,29 +10,28 @@ function wait_for_bidder() {
     local curl_output
     local jq_output
 
-    echo "INFO: Waiting for service at ${health_check_url} to be healthy (timeout: ${timeout_seconds}s)..."
+    echo "INFO: Waiting for bidder to be healthy (timeout: ${timeout_seconds}s)..."
 
-    sleep 5s
-    while true; do
+    # while true; do
         curl_output=$(curl -s "${health_check_url}")
         end_time=$(date +%s.%N)
         elapsed_time=$(echo "$end_time - $start_time" | bc)
 
         echo "CA ${curl_output}"
 
-        if (( $(echo "$elapsed_time >= $timeout_seconds" | bc -l) )); then
-            echo "ERROR: Timeout after waiting for ${elapsed_time} seconds. Service did not become healthy."
-            exit 1
-        fi
+        # if (( $(echo "$elapsed_time >= $timeout_seconds" | bc -l) )); then
+        #     echo "ERROR: Timeout after waiting for ${elapsed_time} seconds. Service did not become healthy."
+        #     exit 1
+        # fi
 
-        if [ -z "$curl_output" ]; then
-            sleep 1
-            continue
-        fi
+        # if [ -z "$curl_output" ]; then
+        #     sleep 1
+        #     continue
+        # fi
 
         jq_output=$(echo "$curl_output" | jq "${jq_filter}")
-        # echo "AAAA ${jq_output}"
-        sleep 2
+        echo "AAAA ${jq_output}"
+        # sleep 2
 
         # if [ -z "$jq_output" ]; then
         #     echo "INFO: Service is healthy after waiting for ${elapsed_time} seconds."
@@ -41,5 +40,5 @@ function wait_for_bidder() {
         #     echo "INFO: Service not yet healthy. Critical unready services: ${jq_output}. Elapsed: ${elapsed_time}s. Retrying in 0.5s..."
         #     sleep 2
         # fi
-    done
+    # done
 }
