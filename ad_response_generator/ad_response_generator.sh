@@ -8,10 +8,10 @@ start=`date +%s.%N`
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_DIR=$(git rev-parse --show-toplevel)
 # source ${REPO_DIR}/utils/print_helper.sh
-source ${REPO_DIR}/ad_response_generator/utils/verification.sh
-source ${REPO_DIR}/ad_response_generator/utils/argument_parser.sh
-source ${REPO_DIR}/ad_response_generator/utils/repository_setuper.sh
-source ${REPO_DIR}/ad_response_generator/utils/waiters.sh
+source ${SCRIPT_DIR}/utils/verification.sh
+source ${SCRIPT_DIR}/utils/argument_parser.sh
+source ${SCRIPT_DIR}/utils/repository_setuper.sh
+source ${SCRIPT_DIR}/utils/waiters.sh
 
 DEBUG=false
 AD_LANGUAGE="en"
@@ -278,18 +278,16 @@ function populate_bidder_with_data() {
 function run_bidder_services(){
     echo "INFO: starting bidder services ..."
     cd ${ROOT_BIDDER}
-    make stop-local-env &> ${OUTPUT}/logs/bidder_services_stop.txt
-    make start-local-env &> ${OUTPUT}/logs/bidder_services_start.txt
+    make stop-fake-unleash &> ${OUTPUT}/logs/bidder_services_stop.txt
+    make start-fake-unleash &> ${OUTPUT}/logs/bidder_services_start.txt
+    # make stop-local-env &> ${OUTPUT}/logs/bidder_services_stop.txt
+    # make start-local-env &> ${OUTPUT}/logs/bidder_services_start.txt
 }
 
 function run_bidder(){
     echo "INFO: starting bidder ..."
     cd ${ROOT_BIDDER}
     go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
-}
-
-function verify_bidder_works() {
-    echo "INFO: Verifying bidder works"
 }
 
 function get_ad_responses(){
@@ -331,7 +329,7 @@ function handle_exit() {
     fi
 
     echo "INFO: Stopping bidder services ..."
-    make stop-local-env &>/dev/null
+    make stop-fake-unleash &>/dev/null
     echo "INFO: Stopping bidder ..."
     bidder_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
     if [[ -z $bidder_pid ]]; then
@@ -363,8 +361,8 @@ function print_summary() {
 parse_arguments "$@"
 DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
 
-do_verification
-if [ ! $verification_success == true ]; then
+do_startup_verification
+if [ ! $startup_verification_success == true ]; then
     echo "INFO: Please correct missing setup and rerun the script"
     exit 1
 fi
@@ -398,9 +396,9 @@ process_term_bert_files
 populate_bidder_with_data
 
 run_bidder_services &
-sleep 5s
+sleep 1s
 run_bidder &
-sleep 5s
+sleep 1s
 
 verify_bidder_works
 

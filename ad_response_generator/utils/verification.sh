@@ -1,4 +1,4 @@
-verification_success=true
+startup_verification_success=true
 
 function do_verify_input_arguments(){
     if [[ ${#CREATIVES_IDS[@]} -eq 0 ]]; then
@@ -126,7 +126,7 @@ function do_verify_trader_db_connection(){
     fi
 }
 
-function do_verification() {
+function do_startup_verification() {
     do_verify_input_arguments
     do_verify_installed_programs
     do_verify_github_setup
