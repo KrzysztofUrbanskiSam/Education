@@ -245,3 +245,12 @@ function setup_data_activation(){
     ROOT_GENERATED_PREQA_CREATIVES_PARQUET=${ROOT_GENERATED_DATA}/preqa_creatives/parquet/preqa_creatives.parquet
     ROOT_GENERATED_LOCALIZATION_PARQUET=${ROOT_GENERATED_DATA}/localization/parquet/localization.parquet
 }
+
+function print_repository_status() {
+    for repo_path in "$@"; do
+        repo_name=$(basename ${repo_path})
+        cd ${repo_path}
+        repo_metadata=$(git log -1 --pretty=format:'(%cr) - %h - %s')
+        printf "INFO: %-32s - %s\n" "${repo_name}" "${repo_metadata}"
+    done
+}

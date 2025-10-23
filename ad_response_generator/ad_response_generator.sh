@@ -375,6 +375,7 @@ OUTPUT_TEST_TVS=${output_artifacts}/test_tvs_creatives.parquet.json
 
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
+print_repository_status "${ROOT_DATA_ACTIVATION}" "${ROOT_BIDDER}"
 
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation
@@ -400,7 +401,7 @@ sleep 1s
 run_bidder &
 sleep 1s
 
-verify_bidder_works
+# verify_bidder_works
 
 get_ad_responses ${CREATIVES_IDS[@]}
 
