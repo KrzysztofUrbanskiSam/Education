@@ -155,19 +155,11 @@ function setup_test_tvs() {
     fi
 }
 
-# function get_test_tvs_creatives(){
-#     local creative_ids_list=$(IFS=', '; echo "${CREATIVES_IDS[*]}")
-#     local where_search="WHERE[[:space:]]\+creative_id"
-#     local where_clause="WHERE creative_id IN ($creative_ids_list)"
-
-#     replace_where_clause "${ROOT_SQL_TEST_TVS_CREATIVES}" "${where_search}" "${where_clause}"
-# }
-
 function generate_test_tv_data(){
-    echo "INFO: Generating Test TV data. May take 10s ..."
+    echo "INFO: Generating Test TV data. May take 2.5s ..."
     rm -f ${ROOT_GENERATED_TEST_TV_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
-    ./dev-run.sh test_tvs_creatives &> ${OUTPUT}/logs/data-activation-test_tvs.txt
+    ${ROOT_DEV_RUN} test_tvs_creatives &> ${OUTPUT}/logs/data-activation-test_tvs.txt
     if [ ! -e ${ROOT_GENERATED_TEST_TV_PARQUET} ]; then
         echo "Failed to generate test_tvs_creatives parquet. Exiting ..." && exit 1
     fi
@@ -175,20 +167,20 @@ function generate_test_tv_data(){
 }
 
 function generate_preqa_creatives_data(){
-    echo "INFO: Generating preqa creatives data. May take 15s"
+    echo "INFO: Generating preqa creatives data. May take 7.5s"
     rm -f ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
-    ./dev-run.sh preqa_creatives &> ${OUTPUT}/logs/data-activation-preqa-creatives.txt
+    ${ROOT_DEV_RUN} preqa_creatives &> ${OUTPUT}/logs/data-activation-preqa-creatives.txt
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
         echo "ERROR: Failed to generate preqa_creatives parquet. Exiting ..." && exit 1
     fi
 }
 
 function generate_localization_data(){
-    echo "INFO: Generating localization data. May take 5s"
+    echo "INFO: Generating localization data. May take 0.5s"
     cd ${ROOT_DATA_ACTIVATION}
     rm -f ${ROOT_GENERATED_LOCALIZATION_PARQUET}
-    ./dev-run.sh localization &> ${OUTPUT}/logs/data-activation-localization.txt
+    ${ROOT_DEV_RUN} localization &> ${OUTPUT}/logs/data-activation-localization.txt
     if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
         echo "ERROR: Failed to generate localization parquet. Exiting ..." && exit 1
     fi
@@ -319,10 +311,13 @@ function get_ad_responses(){
 
 function handle_exit() {
     echo "INFO: Handling exit"
+    # TODO: Changes undo should be in repository_setuper
     if [[ $UNDO_CHANGES == true ]]; then
+        cp ${_da_dev_run} ${ROOT_DEV_RUN}
         cp ${_da_sql_preqa_creatives_orig} ${ROOT_SQL_PREQA_CREATIVES}
         cp ${_da_sql_ttc_orig} ${ROOT_SQL_TEST_TVS_CREATIVES}
         cp ${_da_sql_creatives_strategy_orig} ${ROOT_SQL_CREATIVES_STRATEGY}
+        cp ${_da_test_tvs_creatives} ${ROOT_TEST_TVS_CREATIVES}
         cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
         cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
     else
