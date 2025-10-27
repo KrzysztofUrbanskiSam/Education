@@ -180,19 +180,25 @@ function setup_da_branch() {
 
     setup_git_repository "data-activation-producer-wrapper" "${repo_branch}" "https://github.com/adgear/data-activation-producer-wrapper" "ROOT_DATA_ACTIVATION"
 
+    ROOT_DEV_RUN="${ROOT_DATA_ACTIVATION}/dev-run.sh"
     ROOT_SQL_PREQA_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/creatives/preqa_creatives.sql
     ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
     ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
+    ROOT_TEST_TVS_CREATIVES="${ROOT_DATA_ACTIVATION}/transformation/test_tvs_creatives.go"
     verify_file_exists ${ROOT_SQL_PREQA_CREATIVES}
     verify_file_exists ${ROOT_SQL_TEST_TVS_CREATIVES}
     verify_file_exists ${ROOT_SQL_CREATIVES_STRATEGY}
+    verify_file_exists ${ROOT_DEV_RUN}
+    verify_file_exists ${ROOT_TEST_TVS_CREATIVES}
 
     # Rename to backup/setup
+    _da_dev_run=${output_backup}/dev-run.sh
     _da_sql_preqa_creatives=${output_backup}/preqa_creatives.sql
     _da_sql_preqa_creatives_orig=${output_backup}/preqa_creatives.sql.orig
     _da_sql_ttc=${output_backup}/test_tvs_creatives.sql
     _da_sql_ttc_orig=${output_backup}/test_tvs_creatives.sql.orig
     _da_sql_creatives_strategy_orig=${output_backup}/creativesStrategy.go.orig
+    _da_test_tvs_creatives=${output_backup}/test_tvs_creatives.go
 }
 
 
@@ -202,9 +208,14 @@ function setup_data_activation(){
     local sql_creative_limitation_for_preqa_creatives="vw_creatives.id IN ($creative_ids_list)"
     local sql_creative_limitation_for_tvs="creative_id IN ($creative_ids_list)"
 
+    cp ${ROOT_DEV_RUN} ${_da_dev_run}
     cp ${ROOT_SQL_PREQA_CREATIVES} ${_da_sql_preqa_creatives_orig}
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc_orig}
     cp ${ROOT_SQL_CREATIVES_STRATEGY} ${_da_sql_creatives_strategy_orig}
+    cp ${ROOT_TEST_TVS_CREATIVES} ${_da_test_tvs_creatives}
+
+    # Replace in dev-run.sh to avoid S3 uploads
+    sed -i -r -e "s|(^\s+)(aws s3 cp.*)|\1\# \2|g" ${ROOT_DEV_RUN}
 
     # Replace in preqa_creatives.sql
     sed -i -r -e "/WHERE\s+.*/d" "${ROOT_SQL_PREQA_CREATIVES}"
@@ -226,7 +237,11 @@ function setup_data_activation(){
     fi
 
     # HOPE: this is just temporary substitiution
-    sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_DATA_ACTIVATION}/transformation/test_tvs_creatives.go
+    sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_TEST_TVS_CREATIVES}
+    if ! command grep -q "test_tvs_creatives.sql" "${ROOT_TEST_TVS_CREATIVES}" ; then
+        echo "ERROR: Failed to modify ${ROOT_TEST_TVS_CREATIVES} to focus on creatives"
+        exit 1
+    fi
 
     # Modify creativesStrategy.go to disable S3 upload
     sed -i -r -e "s|(\s+)(WriteToS3.*filepath)|\1//\2|" ${ROOT_SQL_CREATIVES_STRATEGY}
