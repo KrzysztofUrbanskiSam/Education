@@ -156,7 +156,7 @@ function setup_test_tvs() {
 }
 
 function generate_test_tv_data(){
-    echo "INFO: Generating Test TV data. May take 2.5s ..."
+    echo "INFO: Generating Test TV data..."
     rm -f ${ROOT_GENERATED_TEST_TV_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
     ${ROOT_DEV_RUN} test_tvs_creatives &> ${OUTPUT}/logs/data-activation-test_tvs.txt
@@ -167,7 +167,7 @@ function generate_test_tv_data(){
 }
 
 function generate_preqa_creatives_data(){
-    echo "INFO: Generating preqa creatives data. May take 7.5s"
+    echo "INFO: Generating preqa creatives data..."
     rm -f ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
     ${ROOT_DEV_RUN} preqa_creatives &> ${OUTPUT}/logs/data-activation-preqa-creatives.txt
@@ -177,7 +177,7 @@ function generate_preqa_creatives_data(){
 }
 
 function generate_localization_data(){
-    echo "INFO: Generating localization data. May take 0.5s"
+    echo "INFO: Generating localization data..."
     cd ${ROOT_DATA_ACTIVATION}
     rm -f ${ROOT_GENERATED_LOCALIZATION_PARQUET}
     ${ROOT_DEV_RUN} localization &> ${OUTPUT}/logs/data-activation-localization.txt
@@ -320,6 +320,7 @@ function handle_exit() {
         cp ${_da_test_tvs_creatives} ${ROOT_TEST_TVS_CREATIVES}
         cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
         cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
+        cp ${_da_metrix_influx_db} ${ROOT_METRIX_INFLUXDB}
     else
         echo "INFO: Script invoked with '--no-undo-changes' - will not revert changes in repositories"
     fi

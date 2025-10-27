@@ -185,11 +185,13 @@ function setup_da_branch() {
     ROOT_SQL_TEST_TVS_CREATIVES=${ROOT_DATA_ACTIVATION}/sql/test_tvs_creatives/test_tvs_creatives.sql
     ROOT_SQL_CREATIVES_STRATEGY=${ROOT_DATA_ACTIVATION}/transformation/creatives/creativesStrategy.go
     ROOT_TEST_TVS_CREATIVES="${ROOT_DATA_ACTIVATION}/transformation/test_tvs_creatives.go"
+    ROOT_METRIX_INFLUXDB="${ROOT_DATA_ACTIVATION}/pkg/common_packages/metric/influxdb.go"
     verify_file_exists ${ROOT_SQL_PREQA_CREATIVES}
     verify_file_exists ${ROOT_SQL_TEST_TVS_CREATIVES}
     verify_file_exists ${ROOT_SQL_CREATIVES_STRATEGY}
     verify_file_exists ${ROOT_DEV_RUN}
     verify_file_exists ${ROOT_TEST_TVS_CREATIVES}
+    verify_file_exists ${ROOT_METRIX_INFLUXDB}
 
     # Rename to backup/setup
     _da_dev_run=${output_backup}/dev-run.sh
@@ -199,6 +201,7 @@ function setup_da_branch() {
     _da_sql_ttc_orig=${output_backup}/test_tvs_creatives.sql.orig
     _da_sql_creatives_strategy_orig=${output_backup}/creativesStrategy.go.orig
     _da_test_tvs_creatives=${output_backup}/test_tvs_creatives.go
+    _da_metrix_influx_db=${output_backup}/influxdb.go
 }
 
 
@@ -213,9 +216,19 @@ function setup_data_activation(){
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc_orig}
     cp ${ROOT_SQL_CREATIVES_STRATEGY} ${_da_sql_creatives_strategy_orig}
     cp ${ROOT_TEST_TVS_CREATIVES} ${_da_test_tvs_creatives}
+    cp ${ROOT_METRIX_INFLUXDB} ${_da_metrix_influx_db}
 
     # Replace in dev-run.sh to avoid S3 uploads
     sed -i -r -e "s|(^\s+)(aws s3 cp.*)|\1\# \2|g" ${ROOT_DEV_RUN}
+
+    # Replace influxdb to avoid metrics sending
+    sed -i -r -e "s/^(\s*func.*(Incr|Count).*\{).*/\1 return/g" ${ROOT_METRIX_INFLUXDB}
+    if ! command grep -qe "func.*Incr.*return" "${ROOT_METRIX_INFLUXDB}" ; then
+        echo "WARNING: Failed to modify 'Incr' in ${ROOT_METRIX_INFLUXDB} to not send metrics"
+    fi
+    if ! command grep -qe "func.*Count.*return" "${ROOT_METRIX_INFLUXDB}" ; then
+        echo "WARNING: Failed to modify 'Count' in ${ROOT_METRIX_INFLUXDB} to not send metrics"
+    fi
 
     # Replace in preqa_creatives.sql
     sed -i -r -e "/WHERE\s+.*/d" "${ROOT_SQL_PREQA_CREATIVES}"
