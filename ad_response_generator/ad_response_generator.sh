@@ -418,7 +418,7 @@ sleep 1s
 run_bidder &
 sleep 1s
 
-# verify_bidder_works
+verify_bidder_works
 
 get_ad_responses ${CREATIVES_IDS[@]}
 

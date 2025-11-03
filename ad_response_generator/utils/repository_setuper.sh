@@ -111,15 +111,12 @@ function setup_git_repository() {
 function setup_bidder_parquet() {
     cd ${ROOT_BIDDER}
 
-    # flights.parquet is just and example of file that should be present after running'make parquet' command
+    echo "INFO: Populating bidder with 'make parquet' command"
+    make parquet &> ${output_logs}/bidder_make_parquet.log
     if [ ! -e "${ROOT_BIDDER}/test/data-activation/data/flights.parquet" ]; then
-        echo "INFO: Populating bidder with 'make parquet' command"
-        make parquet &> ${output_logs}/bidder_make_parquet.log
-        if [ ! -e "${ROOT_BIDDER}/test/data-activation/data/flights.parquet" ]; then
-            echo "ERROR: Populating bidder with 'make parquet' command"
-            echo "INFO: Inspect log ${output_logs}/bidder_make_parquet.log"
-            exit 1
-        fi
+        echo "ERROR: Populating bidder with 'make parquet' command"
+        echo "INFO: Inspect log ${output_logs}/bidder_make_parquet.log"
+        exit 1
     fi
 }
 
@@ -250,11 +247,12 @@ function setup_data_activation(){
     fi
 
     # HOPE: this is just temporary substitiution
-    sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_TEST_TVS_CREATIVES}
-    if ! command grep -q "test_tvs_creatives.sql" "${ROOT_TEST_TVS_CREATIVES}" ; then
-        echo "ERROR: Failed to modify ${ROOT_TEST_TVS_CREATIVES} to focus on creatives"
-        exit 1
-    fi
+    # TODO: Add limitation to test_devices_creatives
+    # sed -i -r -e "s|sql/test_devices_creatives/test_devices_creatives.sql|sql/test_tvs_creatives/test_tvs_creatives.sql|" ${ROOT_TEST_TVS_CREATIVES}
+    # if ! command grep -q "test_tvs_creatives.sql" "${ROOT_TEST_TVS_CREATIVES}" ; then
+    #     echo "ERROR: Failed to modify ${ROOT_TEST_TVS_CREATIVES} to focus on creatives"
+    #     exit 1
+    # fi
 
     # Modify creativesStrategy.go to disable S3 upload
     sed -i -r -e "s|(\s+)(WriteToS3.*filepath)|\1//\2|" ${ROOT_SQL_CREATIVES_STRATEGY}
