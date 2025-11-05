@@ -55,11 +55,18 @@
     //     "/home/k.urbanski/Projects/Education/DynamicProgramming/c04_seam_finding/surfer_resized_300px.jpg"
     //   ]
     // },
+    // {
+    //   "name": "Python Debugger: Proff bakery coffe",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "/home/k.urbanski/Projects/Education/Python/test_proff_bakery_coffee.py",
+    //   "console": "integratedTerminal"
+    // },
     {
-      "name": "Python Debugger: Proff bakery coffe",
+      "name": "Python Debugger: Proff file sharing",
       "type": "debugpy",
       "request": "launch",
-      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_bakery_coffee.py",
+      "program": "/home/k.urbanski/Projects/Education/Python/test_proff_file_sharing.py",
       "console": "integratedTerminal"
     }
   ]
