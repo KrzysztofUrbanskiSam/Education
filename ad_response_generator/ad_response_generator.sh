@@ -18,6 +18,7 @@ AD_LANGUAGE="en"
 BRANCH_BIDDER=""
 BRANCH_DA=""
 REFRESH_DA_DATA=true
+ONLY_DA=false
 UNDO_CHANGES=true
 UI_MODE=false
 
@@ -239,7 +240,7 @@ function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
         creative_parquet_out_json=${output_artifacts}/creative_da_json_${id}.json
-        echo $line &> ${creative_parquet_out_json}
+        echo $line | jq --indent 2 . &> ${creative_parquet_out_json}
         # echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
         CREATIVES_PARQUETS+=("${creative_parquet_out_json}")
 
@@ -373,6 +374,10 @@ function print_summary() {
     done
 
     echo "INFO: JSON summary saved to ${summary_file}"
+    end=`date +%s.%N`
+    runtime=$( echo "$end - $start" | bc -l )
+
+    echo "INFO: Sript executed in ${runtime}s"
 }
 
 parse_arguments "$@"
@@ -411,6 +416,11 @@ convert_da_parquet_to_json
 parse_parquet_files
 process_term_bert_files
 
+if [[ $ONLY_DA == true ]]; then
+    print_summary
+    exit 0
+fi
+
 populate_bidder_with_data
 
 run_bidder_services &
@@ -424,8 +434,4 @@ get_ad_responses ${CREATIVES_IDS[@]}
 
 handle_exit
 print_summary
-end=`date +%s.%N`
-runtime=$( echo "$end - $start" | bc -l )
-
-echo "INFO: Sript executed in ${runtime}s"
 exit 0
