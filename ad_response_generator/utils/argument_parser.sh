@@ -18,9 +18,11 @@ function parse_arguments() {
                 local param="${1#--db-}"
                 shift; eval "DB_${param^^}=\"$1\""; shift ;;
             --language)
-                shift; AD_LANGUAGE="$1"; shift ;;
+                shift; TV_LANGUAGE="$1"; shift ;;
             --no-da-refresh)
                 REFRESH_DA_DATA=false; shift ;;
+            --only-setup-repos)
+                ONLY_SETUP_REPOSITORIES=true; shift ;;
             --only-da)
                 ONLY_DA=true; shift ;;
             --no-undo-changes)
