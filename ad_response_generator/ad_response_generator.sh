@@ -4,7 +4,7 @@
 # print warning/errors functions with colors
 # Mozliwosc widzenia modyfikacji w term plikach
 
-start=`date +%s.%N`
+start=`date +%s.%3N`
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_DIR=$(git rev-parse --show-toplevel)
 # source ${REPO_DIR}/utils/print_helper.sh
@@ -406,7 +406,7 @@ function print_summary() {
     done
 
     echo "INFO: JSON summary saved to ${summary_file}"
-    end=`date +%s.%N`
+    end=`date +%s.%3N`
     runtime=$( echo "$end - $start" | bc -l )
 
     echo "INFO: Sript executed in ${runtime}s"

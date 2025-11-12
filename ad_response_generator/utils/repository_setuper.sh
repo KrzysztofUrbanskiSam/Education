@@ -16,8 +16,9 @@ function pull_default_branch() {
         $DEBUG && { echo "DEBUG: Pulling newest changes for ${repo_path}"; }
         cd ${repo_path}
         if ! command git pull origin "$default_branch" &> ${pull_log}; then
-            echo "WARNING: Failed to pull '${default_branch}' for '${repo_path}'"
-            echo "HINT: Inspect logs from ${pull_log}. Probably you have unstaged changes"
+            echo "ERROR: Failed to pull '${default_branch}' for '${repo_path}'. Error log:"
+            cat ${pull_log}
+            exit 1
         fi
     fi
 }
@@ -274,9 +275,16 @@ function setup_data_activation(){
 
 function print_repository_status() {
     for repo_path in "$@"; do
-        repo_name=$(basename ${repo_path})
         cd ${repo_path}
-        repo_metadata=$(git log -1 --pretty=format:'(%cr) - %h - %s')
-        printf "INFO: %-32s - %s\n" "${repo_name}" "${repo_metadata}"
+        repo_name=$(basename ${repo_path})
+        repo_branch=$(git branch 2> /dev/null | sed -e "/^[^*]/d" -e "s|* \(.*\)|\1|")
+        commit_msg=$(git log -1 --pretty=format:'%s')
+        repo_updated=$(git log -1 --pretty=format:'%cr')
+        # printf "INFO: %-32s - %-17s %s\n" "${repo_name}" "${repo_metadata}" "${repo_branch}"
+        echo -e "INFO: Repo name: ${repo_name}"
+        echo -e "INFO:\tRepo branch: ${repo_branch}"
+        echo -e "INFO:\tCommits msg: ${commit_msg}"
+        echo -e "INFO:\tCommit hash: $(git rev-parse HEAD)"
+        echo -e "INFO:\tUpdated: ${repo_updated}"
     done
 }
