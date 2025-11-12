@@ -14,10 +14,13 @@ source ${SCRIPT_DIR}/utils/repository_setuper.sh
 source ${SCRIPT_DIR}/utils/waiters.sh
 
 DEBUG=false
-AD_LANGUAGE="en"
+TV_LANGUAGE="en"
+TV_COUNTRY="US"
 BRANCH_BIDDER=""
 BRANCH_DA=""
 REFRESH_DA_DATA=true
+ONLY_DA=false
+ONLY_SETUP_REPOSITORIES=false
 UNDO_CHANGES=true
 UI_MODE=false
 
@@ -25,6 +28,9 @@ DB_HOST="localhost"
 DB_PORT=5432
 DB_USER="adgear"
 DB_NAME="rtb-trader-dev"
+
+BIDDER_HOST_LOCAL="http://localhost:8085"
+BIDDER_HOST_PROD="https://tvx-canary.adgrx.com"
 
 OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
 EMPTY_MARK=" - empty"
@@ -49,7 +55,11 @@ CREATIVES_PARQUETS=()
 CREATIVES_TERM=()
 CREATIVES_BERT=()
 CREATIVES_AD_RESPONSES=()
+CREATIVES_AD_RESPONSES_FORMATTED=()
 CREATIVES_AD_REQUESTS=()
+CREATIVES_PROD_AD_RESPONSES=()
+CREATIVES_PROD_AD_RESPONSES_FORMATTED=()
+CREATIVES_PROD_AD_REQUESTS=()
 TVS_PSIDS=()
 
 # Conisder making it as a dictionary
@@ -239,7 +249,7 @@ function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
         creative_parquet_out_json=${output_artifacts}/creative_da_json_${id}.json
-        echo $line &> ${creative_parquet_out_json}
+        echo $line | jq --indent 2 . &> ${creative_parquet_out_json}
         # echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
         CREATIVES_PARQUETS+=("${creative_parquet_out_json}")
 
@@ -259,7 +269,7 @@ function populate_bidder_with_data() {
     cp ${ROOT_GENERATED_TEST_TV_PARQUET} ${ROOT_BIDDER}/test/data-activation/data
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/preqa_creatives.parquet
     cp ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/creatives.parquet
-    if [ ${AD_LANGUAGE} != "en" ]; then
+    if [ ${TV_LANGUAGE} != "en" ]; then
         if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
             cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
         else
@@ -288,23 +298,44 @@ function get_ad_responses(){
     local index=0
     echo "INFO: Getting ad responses ..."
     for creative_id in "${creative_ids[@]}"; do
-        local creative_ad_response=${output_ad_responses}/${creative_id}.json
-        local creative_ad_request=${output_ad_requests}/${creative_id}.txt
         local creative_pid=${CREATIVES_PIDS[index]}
+        # For production we need to have different PSID. Pord bidder has protection to not
+        # serve ad too freqently for same PSID
         local tv_psid=${TVS_PSIDS[index]}
+        local tv_psid_prod=$(tr -dc a-z0-9 </dev/urandom | head -c 32; echo)
 
-        local endpoint="http://localhost:8085/impressions/tile?pid=${creative_pid}&lang=${AD_LANGUAGE}&Modelcode=23_PONTUSM_QTV_8k&psid=${tv_psid}&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403&Firmver=T-HKMAKUC-1540.3"
+        local creative_ad_request=${output_ad_requests}/${creative_id}.txt
+        local creative_ad_response_original=${output_ad_responses}/${creative_id}_original.json
+        local creative_ad_response_formatted=${output_ad_responses}/${creative_id}_formatted.json
 
-        echo "curl -s '$endpoint'" &> ${creative_ad_request}
-        curl -s $endpoint | jq --indent 2 . &> ${creative_ad_response}
-        # echo -e "INFO: For ${creative_id}\n\tAd request: ${creative_ad_request}\n\tAd response: ${creative_ad_response}"
-        if [ $(cat ${creative_ad_response} | wc -c ) -le 3 ]; then
+        local creative_prod_ad_request=${output_ad_requests}/${creative_id}_prod.txt
+        local creative_prod_ad_response_original=${output_ad_responses}/${creative_id}_original_prod.json
+        local creative_prod_ad_response_formatted=${output_ad_responses}/${creative_id}_formatted_prod.json
+
+        local endpoint_base="/impressions/tile?pid=${creative_pid}&lang=${TV_LANGUAGE}&co=${TV_COUNTRY}&Modelcode=23_PONTUSM_QTV_8k&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403&Firmver=T-HKMAKUC-1540.3"
+        local endpoint_local="${BIDDER_HOST_LOCAL}${endpoint_base}&psid=${tv_psid}"
+        local endpoint_prod="${BIDDER_HOST_PROD}${endpoint_base}&psid=${tv_psid_prod}"
+
+        # Ask for local ad
+        echo "curl -s '$endpoint_local'" &> ${creative_ad_request}
+        curl -s $endpoint_local &> ${creative_ad_response_original}
+        cat ${creative_ad_response_original} | jq --indent 2 . &> ${creative_ad_response_formatted}
+        CREATIVES_AD_RESPONSES+=(${creative_ad_response_original})
+
+        # Ask for production ad
+        echo "curl -s '$endpoint_prod' --header 'x-real-ip: 216.160.83.56'" &> ${creative_prod_ad_request}
+        curl -s $endpoint_prod --header 'x-real-ip: 216.160.83.56' &> ${creative_prod_ad_response_original}
+        cat ${creative_prod_ad_response_original} | jq --indent 2 . &> ${creative_prod_ad_response_formatted}
+        CREATIVES_PROD_AD_RESPONSES_FORMATTED+=(${creative_prod_ad_response_formatted})
+
+        if [ $(cat ${creative_ad_response_formatted} | wc -c ) -le 3 ]; then
             echo "WARNING: Empty ad response for ${creative_id}! Check logs for more details"
-            CREATIVES_AD_RESPONSES+=("${creative_ad_response}${EMPTY_MARK}")
+            CREATIVES_AD_RESPONSES_FORMATTED+=("${creative_ad_response_formatted}${EMPTY_MARK}")
         else
-            CREATIVES_AD_RESPONSES+=("${creative_ad_response}")
+            CREATIVES_AD_RESPONSES_FORMATTED+=("${creative_ad_response_formatted}")
         fi
         CREATIVES_AD_REQUESTS+=("${creative_ad_request}")
+        CREATIVES_PROD_AD_REQUESTS+=("${creative_prod_ad_request}")
         index=$(expr $index + 1)
     done
 }
@@ -348,17 +379,19 @@ function print_summary() {
     local json_output="{}"
     for creative_id in ${CREATIVES_IDS[@]}; do
         echo "INFO: Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
-        echo -e "INFO:\tParquet file: ${CREATIVES_PARQUETS[$index]}"
-        echo -e "INFO:\tBert file:    ${CREATIVES_BERT[$index]}"
-        echo -e "INFO:\tTerm file:    ${CREATIVES_TERM[$index]}"
-        echo -e "INFO:\tAd request:   ${CREATIVES_AD_REQUESTS[$index]}"
-        echo -e "INFO:\tAd response:  ${CREATIVES_AD_RESPONSES[$index]}"
+        echo -e "INFO:\tParquet file:             ${CREATIVES_PARQUETS[$index]}"
+        echo -e "INFO:\tBert file:                ${CREATIVES_BERT[$index]}"
+        echo -e "INFO:\tTerm file:                ${CREATIVES_TERM[$index]}"
+        echo -e "INFO:\tAd request:               ${CREATIVES_AD_REQUESTS[$index]}"
+        echo -e "INFO:\tAd response:              ${CREATIVES_AD_RESPONSES_FORMATTED[$index]}"
+        echo -e "INFO:\tExample Prod ad request:  ${CREATIVES_PROD_AD_REQUESTS[$index]}"
+        echo -e "INFO:\tExample Prod ad response: ${CREATIVES_PROD_AD_RESPONSES_FORMATTED[$index]}"
 
         json_output=$(echo "$json_output" | jq \
             --arg cid "$creative_id" \
             --arg c_parquet "${CREATIVES_PARQUETS[$index]%$EMPTY_MARK}" \
             --arg ad_req "${CREATIVES_AD_REQUESTS[$index]%$EMPTY_MARK}" \
-            --arg ad_resp "${CREATIVES_AD_RESPONSES[$index]%$EMPTY_MARK}" \
+            --arg ad_resp "${CREATIVES_AD_RESPONSES_FORMATTED[$index]%$EMPTY_MARK}" \
             --arg c_term "${CREATIVES_TERM[$index]%$EMPTY_MARK}" \
             --arg c_bert "${CREATIVES_BERT[$index]%$EMPTY_MARK}" \
             '. + {($cid): {"ad_request_file": $ad_req,
@@ -373,6 +406,10 @@ function print_summary() {
     done
 
     echo "INFO: JSON summary saved to ${summary_file}"
+    end=`date +%s.%N`
+    runtime=$( echo "$end - $start" | bc -l )
+
+    echo "INFO: Sript executed in ${runtime}s"
 }
 
 parse_arguments "$@"
@@ -401,7 +438,7 @@ setup_bidder
 if [[ $REFRESH_DA_DATA == true ]]; then {
     generate_preqa_creatives_data
     generate_test_tv_data
-    if [[ "${AD_LANGUAGE}" != 'en' ]]; then
+    if [[ "${TV_LANGUAGE}" != 'en' ]]; then
         generate_localization_data
     fi
 }
@@ -411,7 +448,17 @@ convert_da_parquet_to_json
 parse_parquet_files
 process_term_bert_files
 
+if [[ $ONLY_DA == true ]]; then
+    print_summary
+    exit 0
+fi
+
 populate_bidder_with_data
+
+if [[ $ONLY_SETUP_REPOSITORIES == true ]]; then
+    echo "INFO: Finished setuping repositories. Exiting"
+    exit 0
+fi
 
 run_bidder_services &
 sleep 1s
@@ -424,8 +471,4 @@ get_ad_responses ${CREATIVES_IDS[@]}
 
 handle_exit
 print_summary
-end=`date +%s.%N`
-runtime=$( echo "$end - $start" | bc -l )
-
-echo "INFO: Sript executed in ${runtime}s"
 exit 0
