@@ -258,7 +258,7 @@ function parse_parquet_files() {
 }
 
 function populate_bidder_with_data() {
-    echo "INFO: populating bidder with DA data ..."
+    echo "INFO: Populating bidder with DA data ..."
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
         echo "ERROR: Generated 'preqa_creatives' data not found."
         if [[ $REFRESH_DA_DATA == false ]]; then
@@ -278,17 +278,8 @@ function populate_bidder_with_data() {
     fi
 }
 
-function run_bidder_services(){
-    echo "INFO: starting bidder services ..."
-    cd ${ROOT_BIDDER}
-    make stop-fake-unleash &> ${OUTPUT}/logs/bidder_services_stop.txt
-    make start-fake-unleash &> ${OUTPUT}/logs/bidder_services_start.txt
-    # make stop-local-env &> ${OUTPUT}/logs/bidder_services_stop.txt
-    # make start-local-env &> ${OUTPUT}/logs/bidder_services_start.txt
-}
-
 function run_bidder(){
-    echo "INFO: starting bidder ..."
+    echo "INFO: Starting bidder ..."
     cd ${ROOT_BIDDER}
     go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
 }
@@ -351,14 +342,13 @@ function handle_exit() {
         cp ${_da_test_tvs_creatives} ${ROOT_TEST_TVS_CREATIVES}
         cp ${_bidder_docker_compose_orig} ${ROOT_BIDDER_DOCKER_COMPOSE}
         cp ${_bidder_config_local_orig} ${ROOT_BIDDER_CONFIG_LOCAL}
+        cp ${_bidder_app_go_orig} ${ROOT_BIDDER_APP_GO}
         cp ${_da_metrix_influx_db} ${ROOT_METRIX_INFLUXDB}
     else
         echo "INFO: Script invoked with '--no-undo-changes' - will not revert changes in repositories"
     fi
 
-    echo "INFO: Stopping bidder services ..."
-    make stop-fake-unleash &>/dev/null
-    echo "INFO: Stopping bidder ..."
+    $DEBUG && echo "DEBUG: Stopping bidder ..."
     bidder_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
     if [[ -z $bidder_pid ]]; then
         echo "ERROR: Bidder process not found by ss command. Trying with ps -aux."
@@ -460,11 +450,7 @@ if [[ $ONLY_SETUP_REPOSITORIES == true ]]; then
     exit 0
 fi
 
-run_bidder_services &
-sleep 1s
 run_bidder &
-sleep 1s
-
 verify_bidder_works
 
 get_ad_responses ${CREATIVES_IDS[@]}

@@ -147,15 +147,21 @@ function setup_bidder(){
 
     cp ${ROOT_BIDDER_DOCKER_COMPOSE} ${_bidder_docker_compose_orig}
     cp ${ROOT_BIDDER_CONFIG_LOCAL} ${_bidder_config_local_orig}
+    cp ${ROOT_BIDDER_APP_GO} ${_bidder_app_go_orig}
 
     sed -i -r -e "s|^\s+(-.*fake-barker)|# \1|" ${ROOT_BIDDER_DOCKER_COMPOSE}
     sed -i -r -e "s|^\s+(-.*userprofileservice)|# \1|" ${ROOT_BIDDER_DOCKER_COMPOSE}
     sed -i -r -e "s|^\s+(-.*crossdeviceprofile)|# \1|" ${ROOT_BIDDER_DOCKER_COMPOSE}
     sed -i -r -e "s|^\s+(-.*fake-ups)|# \1|" ${ROOT_BIDDER_DOCKER_COMPOSE}
-    sed -i -r -e "s|url:\s*.*unleash.*|url: http://localhost:51000|g" ${ROOT_BIDDER_CONFIG_LOCAL}
+    sed -i -r -e "s|(\s*err\s*:=\s*)unleashclient.InitializeUnleashClient.*|\1error(nil)|" "${ROOT_BIDDER_APP_GO}"
+    sed -i '/^event_publisher:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
+    sed -i -r -e 's|(\s*)loopinterval: 10s|\1loopinterval: 10000000s|' ${ROOT_BIDDER_CONFIG_LOCAL}
     sed -i '/^familyhub:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
-    sed -i -r -e "s|(^run-rtb-bidder:).*(#.*)|\1 \2|" ${ROOT_BIDDER}/Makefile
-    sed -i -r -e "/docker compose.*docker-compose.yml logs/d" ${ROOT_BIDDER}/Makefile
+
+    # No longer needed but keep it here
+    # sed -i -r -e "s|url:\s*.*unleash.*|url: http://localhost:51000|g" ${ROOT_BIDDER_CONFIG_LOCAL}
+    # sed -i -r -e "s|(^run-rtb-bidder:).*(#.*)|\1 \2|" ${ROOT_BIDDER}/Makefile
+    # sed -i -r -e "/docker compose.*docker-compose.yml logs/d" ${ROOT_BIDDER}/Makefile
 }
 
 function setup_bidder_branch() {
@@ -165,12 +171,14 @@ function setup_bidder_branch() {
 
     ROOT_BIDDER_DOCKER_COMPOSE=${ROOT_BIDDER}/docker/bidder/docker-compose.deps.yml
     ROOT_BIDDER_CONFIG_LOCAL=${ROOT_BIDDER}/configs/bidder/default-local.yaml
+    ROOT_BIDDER_APP_GO=${ROOT_BIDDER}/internal/bidder/app/app.go
     verify_file_exists ${ROOT_BIDDER_DOCKER_COMPOSE}
     verify_file_exists ${ROOT_BIDDER_CONFIG_LOCAL}
-
+    verify_file_exists ${ROOT_BIDDER_APP_GO}
 
     _bidder_docker_compose_orig=${OUTPUT}/docker-compose.deps.yml
     _bidder_config_local_orig=${OUTPUT}/default-local.yaml
+    _bidder_app_go_orig=${OUTPUT}/app.go
 }
 
 function setup_da_branch() {
