@@ -87,9 +87,19 @@ function do_verify_python(){
 
     $DEBUG && { echo "DEBUG: Python: ${PYTHON}"; }
 
-    if ! command ${PYTHON} -c "import argparse,pyarrow" &> /dev/null; then
-        echo "WARNING: Python3 is not correctly configured. Please install 'argparse' and 'pyarrow'"
-        echo "HINT: Without Python it is impossible to convert data-activation output to JSON"
+    if ! command ${PYTHON} -c "import argparse,pyarrow,pandas" &> /dev/null; then
+        home_dir=$(readlink -f ~)
+        bashrc_string='echo -e "\nexport PATH=\"${home_dir}/.venv/bin:'
+        echo "WARNING: Python3 is not correctly configured. Please install 'argparse', 'pyarrow' and 'pandas'"
+        echo "WARNING: Without Python it is impossible to convert data-activation output to JSON"
+        echo "HINT: To create simple Python venv and setting this Python as default, do the following steps:"
+        echo "COMMAND: cd ${home_dir} && python3 -m venv .venv"
+        echo "COMMAND: source ${home_dir}/.venv/bin/activate"
+        echo "COMMAND: pip install pyarrow argparse pandas"
+        echo "COMMAND: deactivate"
+        echo "HINT: then open ${home_dir}/.bashrc with your favourite code editor and at the and add"
+        echo "HINT: export PATH=\"${home_dir}/.venv/bin:\$PATH\""
+        echo "COMMAND: source ${home_dir}/.bashrc"
         verification_success=false
     fi
 }

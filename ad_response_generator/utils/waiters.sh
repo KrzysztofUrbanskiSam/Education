@@ -8,7 +8,7 @@ function verify_bidder_works() {
     local health_check_url="http://localhost:8085/health/statuses"
     local curl_output
 
-    echo "INFO: Waiting for bidder to be healthy (timeout: ${timeout_seconds}s)..."
+    $DEBUG && echo "DEBUG: Waiting for bidder to be healthy (timeout: ${timeout_seconds}s)..."
     while true; do
         curl_output=$(curl -s "${health_check_url}")
         end_time=$(date +%s.%3N)
@@ -23,6 +23,9 @@ function verify_bidder_works() {
             sleep 1
             continue
         else
+            # Even if bidder is ready let's wait few seconds to improve stability
+            sleep 1
+            elapsed_time=$(echo "$end_time - $start_time" | bc)
             echo "INFO: Bidder ready after ${elapsed_time} seconds ..."
             return
         fi
