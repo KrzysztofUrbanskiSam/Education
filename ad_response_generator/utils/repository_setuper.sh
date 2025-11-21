@@ -156,6 +156,7 @@ function setup_bidder(){
     sed -i -r -e "s|(\s*err\s*:=\s*)unleashclient.InitializeUnleashClient.*|\1error(nil)|" "${ROOT_BIDDER_APP_GO}"
     sed -i '/^event_publisher:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
     sed -i -r -e 's|(\s*)loopinterval: 10s|\1loopinterval: 10000000s|' ${ROOT_BIDDER_CONFIG_LOCAL}
+    sed -i -r -e "s|(\s+host:\s*\")localhost:8085\"|\1rtb-canary.adgrx.com\"|" ${ROOT_BIDDER_CONFIG_LOCAL}
     sed -i '/^familyhub:$/ { n; s/true/false/ }' ${ROOT_BIDDER_CONFIG_LOCAL}
 
     # No longer needed but keep it here
