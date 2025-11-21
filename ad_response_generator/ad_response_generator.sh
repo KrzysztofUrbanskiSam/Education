@@ -2,7 +2,6 @@
 
 # TODO:
 # print warning/errors functions with colors
-# Mozliwosc widzenia modyfikacji w term plikach
 
 start=`date +%s.%3N`
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -141,7 +140,7 @@ function setup_test_tvs() {
         # Assign creative_id with dedicated TV
         local creative_test_tv_id=$(execute_sql_query "SELECT test_tv_id FROM test_tvs_creatives WHERE creative_id='$creative_id' AND test_tv_id='${tv_id}';")
         if [[ -z $creative_test_tv_id ]]; then
-            $DB_CONNECT -c "INSERT INTO test_tvs_creatives (creative_id, test_tv_id) VALUES ($creative_id, $tv_id);"
+            $DB_CONNECT -c "INSERT INTO test_tvs_creatives (creative_id, test_tv_id) VALUES ($creative_id, $tv_id);" &> /dev/null
             local creative_test_tv_id=$(execute_sql_query "SELECT test_tv_id FROM test_tvs_creatives WHERE creative_id='$creative_id';" | tr '|' ',' | xargs)
         fi
 
@@ -208,8 +207,8 @@ function process_term_bert_files() {
     term_files=$(find ${ROOT_GENERATED_DATA_PREQUA_CREATIVES_TERM}/ -type f -name "*.term" | xargs)
 
     for creative_id in ${CREATIVES_IDS[@]}; do
-        local creative_term_file="${output_artifacts}/creative_term_${creative_id}.term"
-        local creative_bert_file="${output_artifacts}/creative_term_${creative_id}.bert2"
+        local creative_term_file="${output_artifacts}/${creative_id}_term.term"
+        local creative_bert_file="${output_artifacts}/${creative_id}_bert.bert2"
         touch ${creative_term_file} ${creative_bert_file}
         term_file_found=false
         for term_file in $term_files; do
@@ -248,7 +247,7 @@ function process_term_bert_files() {
 function parse_parquet_files() {
     while IFS= read -r line; do
         id=$(echo "$line" | jq -r '.Id')
-        creative_parquet_out_json=${output_artifacts}/creative_da_json_${id}.json
+        creative_parquet_out_json=${output_artifacts}/${id}_da_json.json
         echo $line | jq --indent 2 . &> ${creative_parquet_out_json}
         # echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
         CREATIVES_PARQUETS+=("${creative_parquet_out_json}")
@@ -308,14 +307,14 @@ function get_ad_responses(){
         local endpoint_prod="${BIDDER_HOST_PROD}${endpoint_base}&psid=${tv_psid_prod}"
 
         # Ask for local ad
-        echo "curl -s '$endpoint_local'" &> ${creative_ad_request}
-        curl -s $endpoint_local &> ${creative_ad_response_original}
+        echo "curl -s '$endpoint_local'" 1> ${creative_ad_request}
+        curl -s $endpoint_local 2>/dev/null 1> ${creative_ad_response_original}
         cat ${creative_ad_response_original} | jq --indent 2 . &> ${creative_ad_response_formatted}
         CREATIVES_AD_RESPONSES+=(${creative_ad_response_original})
 
         # Ask for production ad
-        echo "curl -s '$endpoint_prod' --header 'x-real-ip: 216.160.83.56'" &> ${creative_prod_ad_request}
-        curl -s $endpoint_prod --header 'x-real-ip: 216.160.83.56' &> ${creative_prod_ad_response_original}
+        echo "curl -s '$endpoint_prod' --header 'x-real-ip: 216.160.83.56'" 1> ${creative_prod_ad_request}
+        curl -s $endpoint_prod --header 'x-real-ip: 216.160.83.56' 2>/dev/null 1> ${creative_prod_ad_response_original}
         cat ${creative_prod_ad_response_original} | jq --indent 2 . &> ${creative_prod_ad_response_formatted}
         CREATIVES_PROD_AD_RESPONSES_FORMATTED+=(${creative_prod_ad_response_formatted})
 
@@ -369,13 +368,13 @@ function print_summary() {
     local json_output="{}"
     for creative_id in ${CREATIVES_IDS[@]}; do
         echo "INFO: Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
-        echo -e "INFO:\tParquet file:             ${CREATIVES_PARQUETS[$index]}"
-        echo -e "INFO:\tBert file:                ${CREATIVES_BERT[$index]}"
-        echo -e "INFO:\tTerm file:                ${CREATIVES_TERM[$index]}"
-        echo -e "INFO:\tAd request:               ${CREATIVES_AD_REQUESTS[$index]}"
-        echo -e "INFO:\tAd response:              ${CREATIVES_AD_RESPONSES_FORMATTED[$index]}"
-        echo -e "INFO:\tExample Prod ad request:  ${CREATIVES_PROD_AD_REQUESTS[$index]}"
-        echo -e "INFO:\tExample Prod ad response: ${CREATIVES_PROD_AD_RESPONSES_FORMATTED[$index]}"
+        echo -e "INFO:\tParquet file:               ${CREATIVES_PARQUETS[$index]}"
+        $DEBUG && echo -e "INFO:\tBert file:                  ${CREATIVES_BERT[$index]}"
+        echo -e "INFO:\tTerm file:                  ${CREATIVES_TERM[$index]}"
+        echo -e "INFO:\tAd request:                 ${CREATIVES_AD_REQUESTS[$index]}"
+        echo -e "INFO:\tAd request:  (prod example) ${CREATIVES_PROD_AD_REQUESTS[$index]}"
+        echo -e "INFO:\tAd response:                ${CREATIVES_AD_RESPONSES_FORMATTED[$index]}"
+        echo -e "INFO:\tAd response: (prod example) ${CREATIVES_PROD_AD_RESPONSES_FORMATTED[$index]}"
 
         json_output=$(echo "$json_output" | jq \
             --arg cid "$creative_id" \
