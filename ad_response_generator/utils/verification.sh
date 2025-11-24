@@ -1,15 +1,15 @@
-startup_verification_success=true
+startup_startup_verification_success=true
 
 function do_verify_input_arguments(){
     if [[ ${#CREATIVES_IDS[@]} -eq 0 ]]; then
         echo "ERROR: No creative IDs provided"
-        verification_success=false
+        startup_verification_success=false
     fi
 
     for id in "${CREATIVES_IDS[@]}"; do
         if [[ ! $id =~ ^[0-9]+$ ]]; then
             echo "ERROR: Invalid creative ID: $id (must be numeric)"
-            verification_success=false
+            startup_verification_success=false
         fi
     done
 }
@@ -18,56 +18,56 @@ function do_verify_github_setup(){
     if ! command cat $ROOT_BIDDER/.git/config 2>/dev/null | grep rtb-bidder.git &>/dev/null ; then
         echo "ERROR: Set 'ROOT_BIDDER' pointing to root of rtb-bidder repository"
         echo "INFO: Please pull repo from: https://github.com/adgear/rtb-bidder"
-        verification_success=false
+        startup_verification_success=false
     fi
 
     if ! command echo $GOPRIVATE | grep "github.com/adgear" &> /dev/null; then
         echo "ERROR: Set GOPRIVATE environment variable to include github.com/adgear"
         echo "HINT: Do this by adding 'export GOPRIVATE=\"github.com/adgear\"' to your ~/.bashrc file"
-        verification_success=false
+        startup_verification_success=false
     fi
 
     if ! command echo $GOPROXY | grep "https://proxy.golang.org" | grep direct &> /dev/null; then
         echo "ERROR: Set GOPROXY environment variable to include 'https://proxy.golang.org' and 'direct'"
         echo "HINT: Do this by adding 'export GOPROXY=\"https://proxy.golang.org,direct\"' to your ~/.bashrc file"
-        verification_success=false
+        startup_verification_success=false
     fi
 
     if [[ -z "${GITHUB_TOKEN}" ]]; then
         echo "ERROR: Set GITHUB_TOKEN environment variable, ideally add to your ~/.bashrc file"
         echo "HINT: To setup GITHUB_TOKEN follow instruction: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic"
-        verification_success=false
+        startup_verification_success=false
     fi
 }
 
 function do_verify_installed_programs(){
     if ! command -v go &> /dev/null; then
         echo "ERROR: go is not installed. Please install go to run this script."
-        verification_success=false
+        startup_verification_success=false
     fi
 
     if ! command -v jq &> /dev/null; then
         echo "ERROR: jq is not installed. Please install jq to run this script."
-        verification_success=false
+        startup_verification_success=false
     fi
 
     if ! command -v make &> /dev/null; then
         echo "ERROR: make is not installed. Please install make to run this script."
-        verification_success=false
+        startup_verification_success=false
     fi
 
     if ! command -v docker &> /dev/null; then
         echo "ERROR: docker is not installed. Please install docker to run this script."
-        verification_success=false
+        startup_verification_success=false
     fi
     if ! command -v psql &> /dev/null; then
         echo "ERROR: psql is not installed. Please install psql to run this script."
-        verification_success=false
+        startup_verification_success=false
     fi
     if ! command erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell &> /dev/null; then
         echo "WARNING: Erlang is not installed."
         echo "ERROR: Without Erlang it is impossible to generate term data"
-        verification_success=false
+        startup_verification_success=false
     fi
 }
 
@@ -81,7 +81,7 @@ function do_verify_python(){
 
     if [[ -z ${PYTHON} ]]; then
         echo "WARNING: Could not detect Python. Please install Python3"
-        verification_success=false
+        startup_verification_success=false
         return
     fi
 
@@ -100,7 +100,7 @@ function do_verify_python(){
         echo "HINT: then open ${home_dir}/.bashrc with your favourite code editor and at the and add"
         echo "HINT: export PATH=\"${home_dir}/.venv/bin:\$PATH\""
         echo "COMMAND: source ${home_dir}/.bashrc"
-        verification_success=false
+        startup_verification_success=false
     fi
 }
 
@@ -134,7 +134,7 @@ function do_verify_trader_db_connection(){
         echo "HINT: Verify connection setup ..."
         echo "HINT: If you run on local machine try:"
         echo "HINT:    cd <PROJECTS_ROOT>/rtb-trader && docker compose up db -d"
-        verification_success=false
+        startup_verification_success=false
     fi
 }
 
