@@ -4,13 +4,13 @@ function print_summary() {
     local summary_file="${OUTPUT}/summary.json"
     local json_output="{}"
     for creative_id in ${CREATIVES_IDS[@]}; do
-        echo "INFO: Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
-        echo -e "INFO:\tParquet file:               ${CREATIVES_PARQUETS[$index]}"
+        print_info_color "Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
+        echo -e "INFO:\tParquet file:               ${COLOR_GREEN}${CREATIVES_PARQUETS[$index]}${COLOR_RESET}"
         $DEBUG && echo -e "INFO:\tBert file:                  ${CREATIVES_BERT[$index]}"
         echo -e "INFO:\tTerm file:                  ${CREATIVES_TERM[$index]}"
         echo -e "INFO:\tAd request:                 ${CREATIVES_AD_REQUESTS[$index]}"
         echo -e "INFO:\tAd request:  (prod example) ${CREATIVES_PROD_AD_REQUESTS[$index]}"
-        echo -e "INFO:\tAd response:                ${CREATIVES_AD_RESPONSES_FORMATTED[$index]}"
+        print_info "\tAd response:                ${COLOR_GREEN}${CREATIVES_AD_RESPONSES_FORMATTED[$index]}${COLOR_RESET}"
         echo -e "INFO:\tAd response: (prod example) ${CREATIVES_PROD_AD_RESPONSES_FORMATTED[$index]}"
 
         json_output=$(echo "$json_output" | jq \
@@ -31,9 +31,9 @@ function print_summary() {
         index=$(expr $index + 1)
     done
 
-    echo "INFO: JSON summary saved to ${summary_file}"
+    print_info "JSON summary saved to ${COLOR_BLUE}${summary_file}${COLOR_RESET}"
     end=`date +%s.%3N`
     runtime=$( echo "$end - $start" | bc -l )
 
-    echo "INFO: Sript executed in ${runtime}s"
+    print_info_color "Sript executed in ${runtime}s"
 }

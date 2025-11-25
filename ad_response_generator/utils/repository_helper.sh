@@ -1,7 +1,6 @@
 function verify_file_exists() {
     if [[ ! -f "$1" ]]; then
-        echo "ERROR: Needed file does not exists: $1"
-        exit 1
+        print_critical "Needed file does not exists: $1"
     fi
 }
 
@@ -16,7 +15,7 @@ function pull_default_branch() {
         $DEBUG && { echo "DEBUG: Pulling newest changes for ${repo_path}"; }
         cd ${repo_path}
         if ! command git pull origin "$default_branch" &> ${pull_log}; then
-            echo "ERROR: Failed to pull '${default_branch}' for '${repo_path}'. Error log:"
+            print_error "Failed to pull '${default_branch}' for '${repo_path}'. Error log:"
             cat ${pull_log}
             exit 1
         fi
@@ -53,8 +52,7 @@ function checkout_on_branch() {
         # Branch exists locally
         echo "DEBUG: Checking on local branch '$target_branch'... "
         git checkout "$target_branch" &>/dev/null || {
-            echo "ERROR: Failed to checkout local branch '$target_branch'"
-            exit 1
+            print_critical "Failed to checkout local branch '$target_branch'"
         }
     elif git ls-remote --heads origin "$target_branch" | grep -q "$target_branch"; then
         # Branch exists remotely
@@ -64,8 +62,7 @@ function checkout_on_branch() {
             return 7
         }
     else
-        echo "ERROR: For '${repo_path}' branch '$target_branch' does not exist neither locally nor remotely ..."
-        exit 1
+        print_critical "For '${repo_path}' branch '$target_branch' does not exist neither locally nor remotely ..."
     fi
 
     pull_default_branch $repo_path $default_branch $current_branch
@@ -93,13 +90,13 @@ function setup_git_repository() {
     local root_path="${!root_env_var}"
 
     if [[ -z "${root_path}" ]]; then
-        echo "WARNING: Env variable '${root_env_var}' not set. Trying to guess ${repo_name}"
+        print_warning "Env variable '${root_env_var}' not set. Trying to guess ${repo_name}"
         echo "HINT: Set '${root_env_var}' pointing to root of ${repo_name} repository to avoid search"
         root_path=$(locate_repository "${repo_name}")
     fi
 
     if ! command cat $root_path/.git/config 2>/dev/null | grep "${repo_name}.git" &>/dev/null ; then
-        echo "ERROR: Set '${root_env_var}' pointing to root of ${repo_name} repository"
+        print_error "Set '${root_env_var}' pointing to root of ${repo_name} repository"
         echo "INFO: Please pull repo from: ${repo_url}"
         exit 1
     fi
@@ -117,10 +114,9 @@ function print_repository_status() {
         commit_msg=$(git log -1 --pretty=format:'%s')
         repo_updated=$(git log -1 --pretty=format:'%cr')
         # printf "INFO: %-32s - %-17s %s\n" "${repo_name}" "${repo_metadata}" "${repo_branch}"
-        echo -e "INFO: Repo name: ${repo_name}"
-        echo -e "INFO:\tRepo branch: ${repo_branch}"
-        echo -e "INFO:\tCommits msg: ${commit_msg}"
-        echo -e "INFO:\tCommit hash: $(git rev-parse HEAD)"
-        echo -e "INFO:\tUpdated: ${repo_updated}"
+        print_info " Repo name: ${COLOR_BLUE}${repo_name}${COLOR_RESET}"
+        print_info "\tRepo branch: ${COLOR_YELLOW}${repo_branch}${COLOR_RESET} (updated ${COLOR_YELLOW}${repo_updated}${COLOR_RESET})"
+        print_info "\tCommits msg: ${commit_msg}"
+        print_debug "\tCommit hash: $(git rev-parse HEAD)"
     done
 }

@@ -58,7 +58,7 @@ function set_config_from_arguments(){
 
     OUTPUT=${OUTPUT%%/}
     [ -e $OUTPUT ] && rm -rf ${OUTPUT}
-    echo "INFO: Output directory: $OUTPUT"
+    print_info_color "Output directory: $OUTPUT"
 
     output_ad_requests=${OUTPUT}/ad_requests
     output_ad_responses=${OUTPUT}/ad_responses
