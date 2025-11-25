@@ -11,6 +11,7 @@ source ${SCRIPT_DIR}/utils/config.sh
 source ${SCRIPT_DIR}/utils/verification.sh
 source ${SCRIPT_DIR}/utils/argument_parser.sh
 source ${SCRIPT_DIR}/utils/repository_helper.sh
+source ${SCRIPT_DIR}/utils/handle_trader.sh
 source ${SCRIPT_DIR}/utils/handle_bidder.sh
 source ${SCRIPT_DIR}/utils/handle_data_activation.sh
 source ${SCRIPT_DIR}/utils/handle_test_tvs.sh
@@ -111,7 +112,8 @@ fi
 
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
-print_repository_status "${ROOT_DATA_ACTIVATION}" "${ROOT_BIDDER}"
+setup_trader_branch ${BRANCH_TRADER}
+print_repository_status "${ROOT_TRADER}" "${ROOT_DATA_ACTIVATION}" "${ROOT_BIDDER}"
 
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation

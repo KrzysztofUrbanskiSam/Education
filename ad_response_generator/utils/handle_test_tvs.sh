@@ -46,9 +46,16 @@ function setup_test_tvs() {
         fi
 
         if [[ ${creative_lifestage} != "ready" ]]; then
-            echo "WARNING: Creative ${creative_id} is not 'ready'. Ignoring from futher processing"
-            creatives_ready=false
-            continue
+            echo "WARNING: Creative ${creative_id} is not 'ready'. Automatic transcoding will be performed (may take 10s)"
+            perform_transcoding ${creative_id}
+
+            # Check if transcoding worked
+            local creative_lifestage=$(execute_sql_query "SELECT life_stage FROM creatives WHERE id='$creative_id';" | xargs)
+            if [[ ${creative_lifestage} != "ready" ]]; then
+                echo "WARNING: Failed to automatically transcode creative ${creative_id}."
+                creatives_ready=false
+                continue
+            fi
         fi
 
         local tv_name="test_tv_for_${creative_id}"
