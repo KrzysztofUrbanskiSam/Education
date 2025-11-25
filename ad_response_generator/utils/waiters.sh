@@ -15,8 +15,7 @@ function verify_bidder_works() {
         elapsed_time=$(echo "$end_time - $start_time" | bc)
 
         if (( $(echo "$elapsed_time >= $timeout_seconds" | bc -l) )); then
-            echo "ERROR: Timeout after waiting for ${elapsed_time} seconds. Bidder did not become healthy."
-            exit 1
+            print_critical "Timeout after waiting for ${elapsed_time} seconds. Bidder did not become healthy."
         fi
 
         if [ -z "$curl_output" ]; then

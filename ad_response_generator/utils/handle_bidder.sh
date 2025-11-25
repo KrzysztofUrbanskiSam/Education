@@ -4,7 +4,7 @@ function setup_bidder_parquet() {
     echo "INFO: Populating bidder with 'make parquet' command"
     make parquet &> ${output_logs}/bidder_make_parquet.log
     if [ ! -e "${ROOT_BIDDER}/test/data-activation/data/flights.parquet" ]; then
-        echo "ERROR: Populating bidder with 'make parquet' command"
+        print_error "Populating bidder with 'make parquet' command"
         echo "INFO: Inspect log ${output_logs}/bidder_make_parquet.log"
         exit 1
     fi
@@ -15,7 +15,7 @@ function setup_bidder_geoip(){
     geoip_files=("/usr/share/GeoIP/DE-CountryISO-DB.mmdb" "/usr/share/GeoIP/GeoIP2-Connection-Type.mmdb" "/usr/share/GeoIP/GeoIP2-ISP.mmdb")
     for f in ${geoip_files[@]}; do
         if [ ! -e "$f" ]; then
-            echo "ERROR: Missing GeoIP file: $f"
+            print_error "Missing GeoIP file: $f"
             correct_geoip=false
         fi
     done
@@ -74,7 +74,7 @@ function setup_bidder_branch() {
 function populate_bidder_with_data() {
     echo "INFO: Populating bidder with DA data ..."
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
-        echo "ERROR: Generated 'preqa_creatives' data not found."
+        print_error "Generated 'preqa_creatives' data not found."
         if [[ $REFRESH_DA_DATA == false ]]; then
             echo "HINT: Rerun script without '--no-da-refresh' flag"
         fi
@@ -87,7 +87,7 @@ function populate_bidder_with_data() {
         if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
             cp ${ROOT_GENERATED_LOCALIZATION_PARQUET} ${ROOT_BIDDER}/test/data-activation/data/localization.parquet
         else
-            echo "WARNING: Localization parquet file not found. Default 'Ad language' will be 'en'"
+            print_warning "Localization parquet file not found. Default 'Ad language' will be 'en'"
         fi
     fi
 }

@@ -41,14 +41,21 @@ function setup_test_tvs() {
         local creative_name=$(echo $creative_data | cut -d',' -f4 | xargs)
 
         if [[ -z "${creative_data}" ]]; then
-            echo "ERROR: Creative ${creative_id} does not exist in database. Exiting..."
+            print_error "Creative ${creative_id} does not exist in database. Exiting..."
             exit 1
         fi
 
         if [[ ${creative_lifestage} != "ready" ]]; then
-            echo "WARNING: Creative ${creative_id} is not 'ready'. Ignoring from futher processing"
-            creatives_ready=false
-            continue
+            print_warning "Creative ${creative_id} is not 'ready'. Automatic transcoding will be performed (may take 10s)"
+            perform_transcoding ${creative_id}
+
+            # Check if transcoding worked
+            local creative_lifestage=$(execute_sql_query "SELECT life_stage FROM creatives WHERE id='$creative_id';" | xargs)
+            if [[ ${creative_lifestage} != "ready" ]]; then
+                print_warning "Failed to automatically transcode creative ${creative_id}."
+                creatives_ready=false
+                continue
+            fi
         fi
 
         local tv_name="test_tv_for_${creative_id}"
@@ -69,7 +76,7 @@ function setup_test_tvs() {
         fi
         local creative_pid=$(get_creaitve_pid $creative_type $creative_subtype)
         if [ -z "${creative_pid}" ]; then
-            echo "ERROR: for ${creative_id} cannot find pid."
+            print_error "For ${creative_id} cannot find pid."
             echo "HINT: Contact script maintainers"
             exit 1
         fi
@@ -96,7 +103,7 @@ function setup_test_tvs() {
     fi
 
     if [[ ${#TVS_PSIDS[@]} == 0 ]]; then
-        echo "ERROR: Provided creatives were not set up properly. Exiting... "
+        print_error "Provided creatives were not set up properly. Exiting... "
         exit 1
     fi
 }

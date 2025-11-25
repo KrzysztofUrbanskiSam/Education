@@ -6,11 +6,12 @@
 start=`date +%s.%3N`
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_DIR=$(git rev-parse --show-toplevel)
-# source ${REPO_DIR}/utils/print_helper.sh
+source ${SCRIPT_DIR}/utils/print_helper.sh
 source ${SCRIPT_DIR}/utils/config.sh
 source ${SCRIPT_DIR}/utils/verification.sh
 source ${SCRIPT_DIR}/utils/argument_parser.sh
 source ${SCRIPT_DIR}/utils/repository_helper.sh
+source ${SCRIPT_DIR}/utils/handle_trader.sh
 source ${SCRIPT_DIR}/utils/handle_bidder.sh
 source ${SCRIPT_DIR}/utils/handle_data_activation.sh
 source ${SCRIPT_DIR}/utils/handle_test_tvs.sh
@@ -59,7 +60,7 @@ function get_ad_responses(){
         CREATIVES_PROD_AD_RESPONSES_FORMATTED+=(${creative_prod_ad_response_formatted})
 
         if [ $(cat ${creative_ad_response_formatted} | wc -c ) -le 3 ]; then
-            echo "WARNING: Empty ad response for ${creative_id}! Check logs for more details"
+            print_warning "Empty ad response for ${creative_id}! Check logs for more details"
             CREATIVES_AD_RESPONSES_FORMATTED+=("${creative_ad_response_formatted}${EMPTY_MARK}")
         else
             CREATIVES_AD_RESPONSES_FORMATTED+=("${creative_ad_response_formatted}")
@@ -90,13 +91,13 @@ function handle_exit() {
     $DEBUG && echo "DEBUG: Stopping bidder ..."
     bidder_pid=$(ss -lpt | grep 8085 | grep -oP 'pid=\K\d+')
     if [[ -z $bidder_pid ]]; then
-        echo "ERROR: Bidder process not found by ss command. Trying with ps -aux."
+        print_error "Bidder process not found by ss command. Trying with ps -aux."
         bidder_pid=$(ps -aux | grep -E "go run.*${ROOT_BIDDER_CONFIG_LOCAL}" | cut -f 2 -d ' ' | xargs | cut -f 1 -d ' ')
     fi
     if [[ -n $bidder_pid ]]; then
         kill -9 $bidder_pid
     else
-        echo "ERROR: Could not kill bidder process"
+        print_error "Could not kill bidder process"
     fi
 }
 
@@ -111,7 +112,8 @@ fi
 
 setup_da_branch ${BRANCH_DA}
 setup_bidder_branch ${BRANCH_BIDDER}
-print_repository_status "${ROOT_DATA_ACTIVATION}" "${ROOT_BIDDER}"
+setup_trader_branch ${BRANCH_TRADER}
+print_repository_status "${ROOT_TRADER}" "${ROOT_DATA_ACTIVATION}" "${ROOT_BIDDER}"
 
 setup_test_tvs ${CREATIVES_IDS[@]}
 setup_data_activation

@@ -47,10 +47,10 @@ function setup_data_activation() {
     # Replace influxdb to avoid metrics sending
     sed -i -r -e "s/^(\s*func.*(Incr|Count).*\{).*/\1 return/g" ${ROOT_METRIX_INFLUXDB}
     if ! command grep -qe "func.*Incr.*return" "${ROOT_METRIX_INFLUXDB}" ; then
-        echo "WARNING: Failed to modify 'Incr' in ${ROOT_METRIX_INFLUXDB} to not send metrics"
+        print_warning "Failed to modify 'Incr' in ${ROOT_METRIX_INFLUXDB} to not send metrics"
     fi
     if ! command grep -qe "func.*Count.*return" "${ROOT_METRIX_INFLUXDB}" ; then
-        echo "WARNING: Failed to modify 'Count' in ${ROOT_METRIX_INFLUXDB} to not send metrics"
+        print_warning "Failed to modify 'Count' in ${ROOT_METRIX_INFLUXDB} to not send metrics"
     fi
 
     # Replace in preqa_creatives.sql
@@ -68,7 +68,7 @@ function setup_data_activation() {
 
     # Verify sed correctness
     if ! command grep -q "${sql_creative_limitation_for_preqa_creatives}" "${ROOT_SQL_PREQA_CREATIVES}" ; then
-        echo "ERROR: Failed to modify ${ROOT_SQL_PREQA_CREATIVES} to limit to focused creatives"
+        print_error "Failed to modify ${ROOT_SQL_PREQA_CREATIVES} to limit to focused creatives"
         exit 1
     fi
 
@@ -87,7 +87,7 @@ function setup_data_activation() {
     cp ${ROOT_SQL_TEST_TVS_CREATIVES} ${_da_sql_ttc}
 
     if ! command grep -q "${sql_creative_limitation_for_tvs}" "${ROOT_SQL_TEST_TVS_CREATIVES}" ; then
-        echo "ERROR: Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
+        print_error "Failed to modify ${ROOT_SQL_TEST_TVS_CREATIVES} to limit to focused creatives"
         exit 1
     fi
 
@@ -99,45 +99,45 @@ function setup_data_activation() {
 }
 
 function generate_test_tv_data(){
-    echo "INFO: Generating Test TV data..."
+    print_info "Generating Test TV data..."
     rm -f ${ROOT_GENERATED_TEST_TV_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
     ${ROOT_DEV_RUN} test_tvs_creatives &> ${OUTPUT}/logs/data-activation-test_tvs.txt
     if [ ! -e ${ROOT_GENERATED_TEST_TV_PARQUET} ]; then
         echo "Failed to generate test_tvs_creatives parquet. Exiting ..." && exit 1
     fi
-    echo "INFO: Generated parquet for test_tvs: ${ROOT_GENERATED_TEST_TV_PARQUET}"
+    print_info "Generated parquet for test_tvs: ${COLOR_GREEN}${ROOT_GENERATED_TEST_TV_PARQUET}${COLOR_RESET}"
 }
 
 function generate_preqa_creatives_data(){
-    echo "INFO: Generating preqa creatives data..."
+    print_info "Generating preqa creatives data..."
     rm -f ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET}
     cd ${ROOT_DATA_ACTIVATION}
     ${ROOT_DEV_RUN} preqa_creatives &> ${OUTPUT}/logs/data-activation-preqa-creatives.txt
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
-        echo "ERROR: Failed to generate preqa_creatives parquet. Exiting ..." && exit 1
+        print_error "Failed to generate preqa_creatives parquet. Exiting ..." && exit 1
     fi
 }
 
 function generate_localization_data(){
-    echo "INFO: Generating localization data..."
+    print_info "Generating localization data..."
     cd ${ROOT_DATA_ACTIVATION}
     rm -f ${ROOT_GENERATED_LOCALIZATION_PARQUET}
     ${ROOT_DEV_RUN} localization &> ${OUTPUT}/logs/data-activation-localization.txt
     if [ ! -e ${ROOT_GENERATED_LOCALIZATION_PARQUET} ]; then
-        echo "ERROR: Failed to generate localization parquet. Exiting ..." && exit 1
+        print_error "Failed to generate localization parquet. Exiting ..." && exit 1
     fi
 }
 
 function convert_da_parquet_to_json() {
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ${OUTPUT_JSON_CREATIVES}
     ${PYTHON} ${PYTHON_PARQUET_TO_JSON} ${ROOT_GENERATED_TEST_TV_PARQUET} ${OUTPUT_TEST_TVS}
-    echo "INFO: Output in json for preqa_creatives: ${OUTPUT_JSON_CREATIVES}"
-    echo "INFO: Output in json for test_tvs_creatives: ${OUTPUT_TEST_TVS}"
+    print_info "Output in json for preqa_creatives: ${COLOR_GREEN}${OUTPUT_JSON_CREATIVES}${COLOR_RESET}"
+    print_info "Output in json for test_tvs_creatives: ${COLOR_GREEN}${OUTPUT_TEST_TVS}${COLOR_RESET}"
 }
 
 function process_term_bert_files() {
-    echo "INFO: Processing term bert files ..."
+    print_info "Processing term bert files ..."
     term_files=$(find ${ROOT_GENERATED_DATA_PREQUA_CREATIVES_TERM}/ -type f -name "*.term" | xargs)
 
     for creative_id in ${CREATIVES_IDS[@]}; do
@@ -150,22 +150,22 @@ function process_term_bert_files() {
                 term_file_found=true
                 bert_file=$(dirname ${term_file})/creatives.bert2
                 cp ${term_file} ${creative_term_file}
-                # echo "INFO: For ${creative_id} generated term file: ${creative_term_file}"
+                # print_info "For ${creative_id} generated term file: ${creative_term_file}"
                 CREATIVES_TERM+=("${creative_term_file}")
 
                 if [[ -e ${bert_file} ]]; then
                     cp ${bert_file} ${creative_bert_file}
                     CREATIVES_BERT+=("${creative_bert_file}")
-                    # echo "INFO: For ${creative_id} generated bert file: ${creative_bert_file}"
+                    # print_info "For ${creative_id} generated bert file: ${creative_bert_file}"
                 else
-                    echo "WARNING: For ${creative_id} cannot find bert file: ${creative_bert_file}"
+                    print_warning "For ${creative_id} cannot find bert file: ${creative_bert_file}"
                     CREATIVES_BERT+=("${creative_bert_file}${EMPTY_MARK}")
                 fi
                 break
             fi
         done
         if [ "$term_file_found" = false ]; then
-            echo "ERROR: No term and bert files found for creative_id $creative_id"
+            print_error "No term and bert files found for creative_id $creative_id"
             CREATIVES_BERT+=("${creative_bert_file}${EMPTY_MARK}")
             CREATIVES_TERM+=("${creative_term_file}${EMPTY_MARK}")
         fi
@@ -177,7 +177,7 @@ function parse_parquet_files() {
         id=$(echo "$line" | jq -r '.Id')
         creative_parquet_out_json=${output_artifacts}/${id}_da_json.json
         echo $line | jq --indent 2 . &> ${creative_parquet_out_json}
-        # echo "INFO: For creative_id: $id parquet file: ${creative_parquet_out_json}"
+        # print_info "For creative_id: $id parquet file: ${creative_parquet_out_json}"
         CREATIVES_PARQUETS+=("${creative_parquet_out_json}")
 
     done < ${OUTPUT_JSON_CREATIVES}

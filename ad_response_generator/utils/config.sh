@@ -33,6 +33,7 @@ EMPTY_MARK=" - empty"
 # Root directories (should be set by environment or repository setup)
 ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}
 ROOT_BIDDER=${ROOT_BIDDER}
+ROOT_TRADER=${ROOT_TRADER}
 
 # Python script path
 PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
@@ -53,18 +54,20 @@ CREATIVES_PROD_AD_REQUESTS=()
 TVS_PSIDS=()
 
 function set_config_from_arguments(){
+    DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
+
+    OUTPUT=${OUTPUT%%/}
+    [ -e $OUTPUT ] && rm -rf ${OUTPUT}
+    print_info_color "Output directory: $OUTPUT"
+
     output_ad_requests=${OUTPUT}/ad_requests
     output_ad_responses=${OUTPUT}/ad_responses
     output_artifacts=${OUTPUT}/artifacts
     output_logs=${OUTPUT}/logs
     output_setup=${OUTPUT}/setup
     output_backup=${OUTPUT}/backup
-
-    DB_CONNECT="psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME}"
-
-    [ -e $OUTPUT ] && rm -rf ${OUTPUT}
-    echo "INFO: Output directory: $OUTPUT"
     mkdir -p $output_ad_requests $output_ad_responses $output_artifacts $output_logs $output_setup $output_backup
+
     OUTPUT_JSON_CREATIVES=${output_artifacts}/creatives.parquet.json
     OUTPUT_TEST_TVS=${output_artifacts}/test_tvs_creatives.parquet.json
 }
