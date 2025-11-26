@@ -15,6 +15,7 @@ source ${SCRIPT_DIR}/utils/handle_bidder.sh
 source ${SCRIPT_DIR}/utils/handle_data_activation.sh
 source ${SCRIPT_DIR}/utils/handle_test_tvs.sh
 source ${SCRIPT_DIR}/utils/waiters.sh
+source ${SCRIPT_DIR}/utils/handle_ad_responses.sh
 
 # function handle_trap() {
 #     echo "handling trap"
@@ -22,50 +23,6 @@ source ${SCRIPT_DIR}/utils/waiters.sh
 
 # trap handle_trap EXIT
 
-function get_ad_responses(){
-    local creative_ids=("$@")
-    local index=0
-    print_info "Getting ad responses ..."
-    for creative_id in "${creative_ids[@]}"; do
-        local creative_pid=${CREATIVES_PIDS[index]}
-        # For production we need to have different PSID. Pord bidder has protection to not
-        # serve ad too freqently for same PSID
-        local tv_psid=${TVS_PSIDS[index]}
-        local tv_psid_prod=$(tr -dc a-z0-9 </dev/urandom | head -c 32; echo)
-
-        local creative_ad_request=${output_ad_requests}/${creative_id}.txt
-        local creative_ad_response_original=${output_ad_responses}/${creative_id}_original.json
-        local creative_ad_response_formatted=${output_ad_responses}/${creative_id}_formatted.json
-
-        local creative_prod_ad_request=${output_ad_requests}/${creative_id}_prod.txt
-        local creative_prod_ad_response_original=${output_ad_responses}/${creative_id}_original_prod.json
-        local creative_prod_ad_response_formatted=${output_ad_responses}/${creative_id}_formatted_prod.json
-
-        local endpoint_base="/impressions/tile?pid=${creative_pid}&lang=${TV_LANGUAGE}&co=${TV_COUNTRY}&Modelcode=23_PONTUSM_QTV_8k&Firmcode=T-INFOLINK2023-1013&Adagentver=23.3.1403&Firmver=T-HKMAKUC-1540.3"
-        local endpoint_local="${BIDDER_HOST_LOCAL}${endpoint_base}&psid=${tv_psid}"
-        local endpoint_prod="${BIDDER_HOST_PROD}${endpoint_base}&psid=${tv_psid_prod}"
-
-        # Ask for local ad
-        echo "curl -s '$endpoint_local'" 1> ${creative_ad_request}
-        curl -s $endpoint_local 2>/dev/null 1> ${creative_ad_response_original}
-        cat ${creative_ad_response_original} | jq --indent 2 . &> ${creative_ad_response_formatted}
-        CREATIVES_AD_RESPONSES+=(${creative_ad_response_original})
-
-        # Ask for production ad
-        echo "curl -s '$endpoint_prod' --header 'x-real-ip: 216.160.83.56'" 1> ${creative_prod_ad_request}
-        curl -s $endpoint_prod --header 'x-real-ip: 216.160.83.56' 2>/dev/null 1> ${creative_prod_ad_response_original}
-        cat ${creative_prod_ad_response_original} | jq --indent 2 . &> ${creative_prod_ad_response_formatted}
-        CREATIVES_PROD_AD_RESPONSES_FORMATTED+=(${creative_prod_ad_response_formatted})
-
-        if [ $(cat ${creative_ad_response_formatted} | wc -c ) -le 3 ]; then
-            print_warning "Empty ad response for ${creative_id}! Check logs for more details"
-        fi
-        CREATIVES_AD_RESPONSES_FORMATTED+=("${creative_ad_response_formatted}")
-        CREATIVES_AD_REQUESTS+=("${creative_ad_request}")
-        CREATIVES_PROD_AD_REQUESTS+=("${creative_prod_ad_request}")
-        index=$(expr $index + 1)
-    done
-}
 
 function handle_exit() {
     print_info "Handling exit"
