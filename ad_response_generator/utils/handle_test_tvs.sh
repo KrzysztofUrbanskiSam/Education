@@ -1,4 +1,10 @@
 # Conisder making it as a dictionary
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
+
 function get_creaitve_pid(){
     if [ "$1" == "Creatives::StvFirstScreenMasthead" ]; then
         if [ "$2" == "59" ]; then
@@ -32,7 +38,7 @@ function execute_sql_query() {
 function setup_test_tvs() {
     local creative_ids=("$@")
     local creatives_ready=true
-    echo "INFO: Setting up test TVs ..."
+    print_info "Setting up test TVs ..."
     for creative_id in "${creative_ids[@]}"; do
         local creative_data=$(execute_sql_query "SELECT type, creative_subtype_id, life_stage, name FROM creatives WHERE id='$creative_id';")
         local creative_type=$(echo $creative_data | cut -d',' -f1 | xargs)
@@ -91,11 +97,11 @@ function setup_test_tvs() {
         CREATIVES_PIDS+=("${creative_pid}")
         CREATIVES_NAMES+=("${creative_name}")
         TVS_PSIDS+=("$tv_psid")
-        $DEBUG && echo "INFO: Setup for creative ${creative_id} -> PID:${creative_pid} PSID:${tv_psid}"
+        $DEBUG && print_info "Setup for creative ${creative_id} -> PID:${creative_pid} PSID:${tv_psid}"
     done
 
     if [[ $creatives_ready != true ]]; then
-        echo "INFO: One of provided creative is not ready. Probably needs to be transcoded"
+        print_info "One of provided creative is not ready. Probably needs to be transcoded"
         echo "HINT: To perform transcoding, run rtb-trader and additionally in separate terminal run:"
         echo "HINT: QUEUE=* rails resque:work"
         echo "HINT: Open your creative, save again, refresh preview page, and notice 'green dot' indicating creative is ready."

@@ -1,4 +1,9 @@
 #!/bin/bash
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
 
 function verify_bidder_works() {
     local timeout_seconds=${1:-10}
@@ -25,7 +30,7 @@ function verify_bidder_works() {
             # Even if bidder is ready let's wait few seconds to improve stability
             sleep 1
             elapsed_time=$(echo "$end_time - $start_time" | bc)
-            echo "INFO: Bidder ready after ${elapsed_time} seconds ..."
+            print_info "Bidder ready after ${elapsed_time} seconds ..."
             return
         fi
     done

@@ -1,3 +1,9 @@
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
+
 function perform_transcoding() {
     local creative_id="$1"
     local transcoding_logs="${output_logs}/${creative_id}_transcoding.txt"

@@ -1,3 +1,9 @@
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
+
 function verify_file_exists() {
     if [[ ! -f "$1" ]]; then
         print_critical "Needed file does not exists: $1"
@@ -85,7 +91,7 @@ function setup_git_repository() {
     local repo_url="$3"
     local root_env_var="$4"
 
-    echo "INFO: Setuping repository ${repo_name}"
+    print_info "Setuping repository ${repo_name}"
     # Get the value of the root environment variable
     local root_path="${!root_env_var}"
 
@@ -97,7 +103,7 @@ function setup_git_repository() {
 
     if ! command cat $root_path/.git/config 2>/dev/null | grep "${repo_name}.git" &>/dev/null ; then
         print_error "Set '${root_env_var}' pointing to root of ${repo_name} repository"
-        echo "INFO: Please pull repo from: ${repo_url}"
+        print_info "Please pull repo from: ${repo_url}"
         exit 1
     fi
 
