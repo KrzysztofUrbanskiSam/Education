@@ -1,11 +1,17 @@
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
+
 function setup_bidder_parquet() {
     cd ${ROOT_BIDDER}
 
-    echo "INFO: Populating bidder with 'make parquet' command"
+    print_info "Populating bidder with 'make parquet' command"
     make parquet &> ${output_logs}/bidder_make_parquet.log
     if [ ! -e "${ROOT_BIDDER}/test/data-activation/data/flights.parquet" ]; then
         print_error "Populating bidder with 'make parquet' command"
-        echo "INFO: Inspect log ${output_logs}/bidder_make_parquet.log"
+        print_info "Inspect log ${output_logs}/bidder_make_parquet.log"
         exit 1
     fi
 }
@@ -72,7 +78,7 @@ function setup_bidder_branch() {
 }
 
 function populate_bidder_with_data() {
-    echo "INFO: Populating bidder with DA data ..."
+    print_info "Populating bidder with DA data ..."
     if [ ! -e ${ROOT_GENERATED_PREQA_CREATIVES_PARQUET} ]; then
         print_error "Generated 'preqa_creatives' data not found."
         if [[ $REFRESH_DA_DATA == false ]]; then
@@ -93,7 +99,7 @@ function populate_bidder_with_data() {
 }
 
 function run_bidder(){
-    echo "INFO: Starting bidder ..."
+    print_info "Starting bidder ..."
     cd ${ROOT_BIDDER}
     go run ${ROOT_BIDDER}/cmd/bidder/ -configFile ${ROOT_BIDDER_CONFIG_LOCAL} &> ${OUTPUT}/logs/bidder.txt
 }

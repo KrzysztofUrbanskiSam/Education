@@ -1,3 +1,9 @@
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
+
 startup_startup_verification_success=true
 
 function do_verify_input_arguments(){
@@ -17,7 +23,7 @@ function do_verify_input_arguments(){
 function do_verify_github_setup(){
     if ! command cat $ROOT_BIDDER/.git/config 2>/dev/null | grep rtb-bidder.git &>/dev/null ; then
         print_error "Set 'ROOT_BIDDER' pointing to root of rtb-bidder repository"
-        echo "INFO: Please pull repo from: https://github.com/adgear/rtb-bidder"
+        print_info "Please pull repo from: https://github.com/adgear/rtb-bidder"
         startup_verification_success=false
     fi
 

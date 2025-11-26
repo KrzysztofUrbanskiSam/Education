@@ -1,5 +1,9 @@
 #!/bin/bash
-
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
 # Configuration variables for ad_response_generator
 
 # Debug and feature flags
@@ -28,7 +32,8 @@ BIDDER_HOST_PROD="https://tvx-canary.adgrx.com"
 
 # Output directory configuration
 OUTPUT="${REPO_DIR}/ad_response_generator/runs/$(date '+%Y-%m-%d/%H%M%S')"
-EMPTY_MARK=" - empty"
+EMPTY_MARK="(empty)"
+NOT_EXISTS_MARK="(does not exist)"
 
 # Root directories (should be set by environment or repository setup)
 ROOT_DATA_ACTIVATION=${ROOT_DATA_ACTIVATION}

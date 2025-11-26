@@ -1,3 +1,9 @@
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
+
 function setup_da_branch() {
     local repo_branch="$1"
 

@@ -1,4 +1,9 @@
 #!/bin/bash
+if [[ -z "$ad_response_generator_context" ]]; then
+    echo "Cannot invoke outside 'ad_response_generator"
+    echo "Run 'bash ad_response_generator <args>'"
+    exit 1
+fi
 
 function parse_arguments() {
     while [[ $# -gt 0 ]]; do
