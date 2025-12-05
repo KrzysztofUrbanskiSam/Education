@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# TODO:
-# - when user provides creatives right now they have to be in order if they are not output is not correct
-
 export ad_response_generator_context="true"
 
 start=`date +%s.%3N`

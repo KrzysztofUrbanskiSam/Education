@@ -47,6 +47,10 @@ function do_verify_github_setup(){
 }
 
 function do_verify_installed_programs(){
+    if ! command -v curl &> /dev/null; then
+        print_error "curl is not installed. Please install curl to run this script."
+        startup_verification_success=false
+    fi
     if ! command -v go &> /dev/null; then
         print_error "go is not installed. Please install go to run this script."
         startup_verification_success=false
@@ -71,9 +75,7 @@ function do_verify_installed_programs(){
         startup_verification_success=false
     fi
     if ! command erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell &> /dev/null; then
-        print_warning "Erlang is not installed."
-        print_error "Without Erlang it is impossible to generate term data"
-        startup_verification_success=false
+        print_warning "Erlang is not installed. Without Erlang it is impossible to generate bert data"
     fi
 }
 
