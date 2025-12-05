@@ -41,7 +41,9 @@ ROOT_BIDDER=${ROOT_BIDDER}
 ROOT_TRADER=${ROOT_TRADER}
 
 # Python script path
-PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/extract_parquet_files.py
+PYTHON_VENV=${SCRIPT_DIR}/.venv
+PYTHON=${PYTHON_VENV}/bin/python3
+PYTHON_PARQUET_TO_JSON=${SCRIPT_DIR}/utils/extract_parquet_files.py
 
 # Initialize arrays for storing creative and test data
 CREATIVES_IDS=()
