@@ -47,6 +47,10 @@ function do_verify_github_setup(){
 }
 
 function do_verify_installed_programs(){
+    if ! command -v curl &> /dev/null; then
+        print_error "curl is not installed. Please install curl to run this script."
+        startup_verification_success=false
+    fi
     if ! command -v go &> /dev/null; then
         print_error "go is not installed. Please install go to run this script."
         startup_verification_success=false
@@ -71,41 +75,27 @@ function do_verify_installed_programs(){
         startup_verification_success=false
     fi
     if ! command erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell &> /dev/null; then
-        print_warning "Erlang is not installed."
-        print_error "Without Erlang it is impossible to generate term data"
-        startup_verification_success=false
+        print_warning "Erlang is not installed. Without Erlang it is impossible to generate bert data"
     fi
 }
 
 function do_verify_python(){
-    if [[ -n ${PYTHON} ]]; then
-        $DEBUG && { echo "DEBUG: Detected Python by env variable"; }
+    if [[ -e ${PYTHON} ]]; then
+        $DEBUG && { echo "DEBUG: Python environment detected"; }
     else
-        $DEBUG && { echo "DEBUG: Detecting python by which command"; }
-        PYTHON=$(which python3)
-    fi
-
-    if [[ -z ${PYTHON} ]]; then
-        print_warning "Could not detect Python. Please install Python3"
-        startup_verification_success=false
-        return
+        $DEBUG && { echo "INFO: Python environment not detected. Will try to install (may take 15s)"; }
+        python_venv_install_log="${output_logs}/python_env_install.log"
+        cd $(dirname ${PYTHON_VENV})
+        python3 -m venv .venv &> ${python_venv_install_log}
+        source ${PYTHON_VENV}/bin/activate
+        pip install pyarrow argparse pandas >> ${python_venv_install_log}
+        deactivate
     fi
 
     $DEBUG && { echo "DEBUG: Python: ${PYTHON}"; }
-
     if ! command ${PYTHON} -c "import argparse,pyarrow,pandas" &> /dev/null; then
-        home_dir=$(readlink -f ~)
-        bashrc_string='echo -e "\nexport PATH=\"${home_dir}/.venv/bin:'
         print_warning "Python3 is not correctly configured. Please install 'argparse', 'pyarrow' and 'pandas'"
         print_warning "Without Python it is impossible to convert data-activation output to JSON"
-        echo "HINT: To create simple Python venv and setting this Python as default, do the following steps:"
-        echo "COMMAND: cd ${home_dir} && python3 -m venv .venv"
-        echo "COMMAND: source ${home_dir}/.venv/bin/activate"
-        echo "COMMAND: pip install pyarrow argparse pandas"
-        echo "COMMAND: deactivate"
-        echo "HINT: then open ${home_dir}/.bashrc with your favourite code editor and at the and add"
-        echo "HINT: export PATH=\"${home_dir}/.venv/bin:\$PATH\""
-        echo "COMMAND: source ${home_dir}/.bashrc"
         startup_verification_success=false
     fi
 }

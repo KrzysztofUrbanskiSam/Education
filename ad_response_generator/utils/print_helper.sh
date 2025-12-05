@@ -62,7 +62,7 @@ function print_summary() {
 
         print_info_color "Summary for ${creative_id} - '${CREATIVES_NAMES[$index]}'"
         print_info "\tParquet file:               ${COLOR_GREEN}${CREATIVES_PARQUETS[$index]}${COLOR_RESET}"
-        $DEBUG && print_info "tBert file:                  ${CREATIVES_BERT[$index]}"
+        $DEBUG && print_info "\tBert file:                  ${CREATIVES_BERT[$index]}"
         print_info "\tTerm file:                  ${CREATIVES_TERM[$index]}"
         print_info "\tAd request:                 ${CREATIVES_AD_REQUESTS[$index]}"
         print_info "\tAd request:  (prod example) ${CREATIVES_PROD_AD_REQUESTS[$index]}"

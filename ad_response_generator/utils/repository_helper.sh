@@ -119,10 +119,15 @@ function print_repository_status() {
         repo_branch=$(git branch 2> /dev/null | sed -e "/^[^*]/d" -e "s|* \(.*\)|\1|")
         commit_msg=$(git log -1 --pretty=format:'%s')
         repo_updated=$(git log -1 --pretty=format:'%cr')
+        repo_old_commit=$(echo ${repo_updated} | grep -P "^(\d{2,}\sday|\d+\s*week|\d+\s*year)")
         # printf "INFO: %-32s - %-17s %s\n" "${repo_name}" "${repo_metadata}" "${repo_branch}"
-        print_info " Repo name: ${COLOR_BLUE}${repo_name}${COLOR_RESET}"
-        print_info "\tRepo branch: ${COLOR_YELLOW}${repo_branch}${COLOR_RESET} (updated ${COLOR_YELLOW}${repo_updated}${COLOR_RESET})"
-        print_info "\tCommits msg: ${commit_msg}"
+        print_info " Repo name: ${COLOR_BLUE}${repo_name}${COLOR_RESET} (updated ${COLOR_BLUE}${repo_updated}${COLOR_RESET})"
+        print_info "\tRepo branch: ${COLOR_GREEN}${repo_branch}${COLOR_RESET}"
+        print_info "\tCommits msg: ${COLOR_GREEN}${commit_msg}${COLOR_RESET}"
         print_debug "\tCommit hash: $(git rev-parse HEAD)"
+
+        if [[ -n "${repo_old_commit}" ]]; then
+            print_warning "Repo '${repo_name}' was updated ${COLOR_RED}${repo_updated}${COLOR_RESET}${COLOR_YELLOW}. Consider pulling newest changes"
+        fi
     done
 }

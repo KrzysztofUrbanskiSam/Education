@@ -164,7 +164,7 @@ function process_term_bert_files() {
                     CREATIVES_BERT+=("${creative_bert_file}")
                     # print_info "For ${creative_id} generated bert file: ${creative_bert_file}"
                 else
-                    print_warning "For ${creative_id} cannot find bert file: ${creative_bert_file}"
+                    $DEBUG && print_warning "For ${creative_id} cannot find bert file: ${creative_bert_file}"
                     CREATIVES_BERT+=("${creative_bert_file}${EMPTY_MARK}")
                 fi
                 break
@@ -187,5 +187,4 @@ function parse_parquet_files() {
         CREATIVES_PARQUETS+=("${creative_parquet_out_json}")
 
     done < ${OUTPUT_JSON_CREATIVES}
-
 }

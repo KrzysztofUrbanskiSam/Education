@@ -16,6 +16,7 @@ runs/
 # Python
 __pycache__/
 *.py[cod]
+*.venv/
 
 # Used by dotenv library to load environment variables.
 # .env
